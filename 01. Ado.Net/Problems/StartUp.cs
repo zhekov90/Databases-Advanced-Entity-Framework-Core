@@ -23,10 +23,39 @@ namespace AdoNetExercise
 
             // ChangeTownNamesCasing(connection);
 
-            RemoveVillain(connection);
+            // RemoveVillain(connection);
+
+            // PrintAllMinionsNames(connection);
 
 
+        }
 
+        private static void PrintAllMinionsNames(SqlConnection connection)
+        {
+            var minionsQuery = @"SELECT Name FROM Minions";
+           using var selectCommand = new SqlCommand(minionsQuery, connection);
+           using var reader = selectCommand.ExecuteReader();
+            var minions = new List<string>();
+            while (reader.Read())
+            {
+                minions.Add((string)reader[0]);
+            }
+
+            //prints the minions
+
+            int counter = 0;
+
+            for (int i = 0; i < minions.Count / 2; i++)
+            {
+                Console.WriteLine(minions[0 + counter]);
+                Console.WriteLine(minions[minions.Count - 1 - counter]);
+                counter++;
+            }
+
+            if (minions.Count % 2 == 1)
+            {
+                Console.WriteLine(minions[minions.Count / 2]);
+            }
         }
 
         private static void RemoveVillain(SqlConnection connection)
@@ -47,14 +76,14 @@ namespace AdoNetExercise
             var deleteMinionsVillainsQuery = @"DELETE FROM MinionsVillains 
       WHERE VillainId = @villainId";
 
-          using var sqlDeleteMinVilCommand = new SqlCommand(deleteMinionsVillainsQuery, connection);
+            using var sqlDeleteMinVilCommand = new SqlCommand(deleteMinionsVillainsQuery, connection);
             sqlDeleteMinVilCommand.Parameters.AddWithValue("@villainId", villainId);
-           var affectedRows = sqlDeleteMinVilCommand.ExecuteNonQuery();
-            
+            var affectedRows = sqlDeleteMinVilCommand.ExecuteNonQuery();
+
 
             var deleteVillainsQuery = @"DELETE FROM Villains
       WHERE Id = @villainId";
-           using var sqlDeleteVillainCommand = new SqlCommand(deleteVillainsQuery, connection);
+            using var sqlDeleteVillainCommand = new SqlCommand(deleteVillainsQuery, connection);
             sqlDeleteVillainCommand.Parameters.AddWithValue("@villainId", villainId);
             sqlDeleteVillainCommand.ExecuteNonQuery();
 
