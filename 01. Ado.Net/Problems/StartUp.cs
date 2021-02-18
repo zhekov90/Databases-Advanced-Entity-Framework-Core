@@ -21,13 +21,25 @@ namespace AdoNetExercise
 
             // AddMinion(connection);
 
-            // SqlCommand updateCommand = ChangeTownNamesCasing(connection);
+            // ChangeTownNamesCasing(connection);
 
-
+            // RemoveVillain(connection);
 
         }
 
-        private static SqlCommand ChangeTownNamesCasing(SqlConnection connection)
+        private static void RemoveVillain(SqlConnection connection)
+        {
+            int villainId = int.Parse(Console.ReadLine());
+
+            string villainToRemoveQuery = @"SELECT Name FROM Villains WHERE Id = @villainId";
+            var sqlCommand = new SqlCommand(villainToRemoveQuery, connection);
+            sqlCommand.Parameters.AddWithValue("@villainId", villainId);
+            var name = (string)sqlCommand.ExecuteScalar();
+
+            Console.WriteLine(name);
+        }
+
+        private static void ChangeTownNamesCasing(SqlConnection connection)
         {
             string countryName = Console.ReadLine();
 
@@ -63,8 +75,6 @@ namespace AdoNetExercise
                 }
                 Console.WriteLine($"[{string.Join(", ", towns)}]");
             }
-
-            return updateCommand;
         }
 
         private static void AddMinion(SqlConnection connection)
