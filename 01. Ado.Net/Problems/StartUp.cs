@@ -3,6 +3,7 @@ namespace AdoNetExercise
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Data.SqlClient;
     public class StartUp
     {
@@ -27,14 +28,61 @@ namespace AdoNetExercise
 
             // PrintAllMinionsNames(connection);
 
+            // IncreaseMinionAge(connection);
 
+            // IncreaseAgeStoredProcedure(connection);
+
+        }
+
+        private static void IncreaseAgeStoredProcedure(SqlConnection connection)
+        {
+            int id = int.Parse(Console.ReadLine());
+
+            string query = @"EXEC usp_GetOlder @id";
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@id", id);
+            command.ExecuteNonQuery();
+
+            string selectQuery = @"SELECT Name, Age FROM Minions WHERE Id = @Id";
+            using var selectCommand = new SqlCommand(selectQuery, connection);
+            selectCommand.Parameters.AddWithValue("@Id", id);
+            using var reader = selectCommand.ExecuteReader();
+            while (reader.Read())
+            {
+                Console.WriteLine($"{reader[0]} – {reader[1]} years old");
+            }
+        }
+
+        private static void IncreaseMinionAge(SqlConnection connection)
+        {
+            int[] minionsIds = Console.ReadLine().Split().Select(int.Parse).ToArray();
+
+            string updateMinionsQuery = @" UPDATE Minions
+   SET Name = UPPER(LEFT(Name, 1)) + SUBSTRING(Name, 2, LEN(Name)), Age += 1
+ WHERE Id = @Id";
+
+            foreach (var id in minionsIds)
+            {
+                using var sqlCommand = new SqlCommand(updateMinionsQuery, connection);
+                sqlCommand.Parameters.AddWithValue("@Id", id);
+                var name = sqlCommand.ExecuteNonQuery();
+            }
+
+            string selectMinionsQuery = @"SELECT Name, Age FROM Minions";
+
+            var selectCommand = new SqlCommand(selectMinionsQuery, connection);
+            var reader = selectCommand.ExecuteReader();
+            while (reader.Read())
+            {
+                Console.WriteLine($"{reader[0]} {reader[1]}");
+            }
         }
 
         private static void PrintAllMinionsNames(SqlConnection connection)
         {
             var minionsQuery = @"SELECT Name FROM Minions";
-           using var selectCommand = new SqlCommand(minionsQuery, connection);
-           using var reader = selectCommand.ExecuteReader();
+            using var selectCommand = new SqlCommand(minionsQuery, connection);
+            using var reader = selectCommand.ExecuteReader();
             var minions = new List<string>();
             while (reader.Read())
             {
