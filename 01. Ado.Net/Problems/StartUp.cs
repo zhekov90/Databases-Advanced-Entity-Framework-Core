@@ -2,6 +2,7 @@
 namespace AdoNetExercise
 {
     using System;
+    using System.Collections.Generic;
     using Microsoft.Data.SqlClient;
     public class StartUp
     {
@@ -18,8 +19,144 @@ namespace AdoNetExercise
 
             // GetVillainNames(connection);
 
+            // AddMinion(connection);
+
+            // SqlCommand updateCommand = ChangeTownNamesCasing(connection);
 
 
+
+        }
+
+        private static SqlCommand ChangeTownNamesCasing(SqlConnection connection)
+        {
+            string countryName = Console.ReadLine();
+
+            string updateTownNamesQuery = @"UPDATE Towns
+   SET Name = UPPER(Name)
+ WHERE CountryCode = (SELECT c.Id FROM Countries AS c WHERE c.Name = @countryName)";
+
+            string selectTownNamesQuery = @"SELECT t.Name 
+   FROM Towns as t
+   JOIN Countries AS c ON c.Id = t.CountryCode
+  WHERE c.Name = @countryName";
+            var updateCommand = new SqlCommand(updateTownNamesQuery, connection);
+            updateCommand.Parameters.AddWithValue("@countryName", countryName);
+            var affectedRows = updateCommand.ExecuteNonQuery();
+
+            if (affectedRows == 0)
+            {
+                Console.WriteLine("No town names were affected.");
+            }
+            else
+            {
+                Console.WriteLine($"{affectedRows} town names were affected.");
+
+                using var selectCommand = new SqlCommand(selectTownNamesQuery, connection);
+                selectCommand.Parameters.AddWithValue("@countryName", countryName);
+
+                using var reader = selectCommand.ExecuteReader();
+
+                var towns = new List<string>();
+                while (reader.Read())
+                {
+                    towns.Add((string)reader[0]);
+                }
+                Console.WriteLine($"[{string.Join(", ", towns)}]");
+            }
+
+            return updateCommand;
+        }
+
+        private static void AddMinion(SqlConnection connection)
+        {
+            string[] minionInfo = Console.ReadLine().Split(" ");
+            string[] villainInfo = Console.ReadLine().Split(" ");
+            string minionName = minionInfo[1];
+            int age = int.Parse(minionInfo[2]);
+            string town = minionInfo[3];
+
+            int? townId = GetTownId(connection, town);
+
+            if (townId == null)
+            {
+                string createTownQuery = "INSERT INTO Towns(Id, Name) VALUES (10, @name)";
+
+                using var createTownCommand = new SqlCommand(createTownQuery, connection);
+                createTownCommand.Parameters.AddWithValue("@name", town);
+                createTownCommand.ExecuteNonQuery();
+                townId = GetTownId(connection, town);
+
+                Console.WriteLine($"Town {town} was added to the database.");
+            }
+
+
+            string villainName = villainInfo[1];
+
+            int? villainId = GetVillainId(connection, town);
+
+            if (villainId == null)
+            {
+                string createVillain = "INSERT INTO Villains (Name, EvilnessFactorId)  VALUES (@villainName, 4)";
+                using var createMinionCommand = new SqlCommand(createVillain, connection);
+                createMinionCommand.Parameters.AddWithValue("@villainName", villainName);
+                createMinionCommand.ExecuteNonQuery();
+                villainId = GetVillainId(connection, town);
+                Console.WriteLine($"Villain {villainName} was added to the database.");
+            }
+
+            CreateMinion(connection, minionName, age, townId);
+
+            var minionId = GetMinionId(connection, minionName);
+
+            InsertMinionVillain(connection, villainId, minionId);
+
+            Console.WriteLine($"Successfully added {minionName} to be minion of {villainName}.");
+        }
+
+        private static void InsertMinionVillain(SqlConnection connection, int? villainId, int? minionId)
+        {
+            var insertIntoMinionVillain = "INSERT INTO MinionsVillains (MinionId, VillainId) VALUES (@villainId, @minionId)";
+            var minVilCommand = new SqlCommand(insertIntoMinionVillain, connection);
+            minVilCommand.Parameters.AddWithValue("@villainId", villainId);
+            minVilCommand.Parameters.AddWithValue("@minionId", minionId);
+            minVilCommand.ExecuteNonQuery();
+        }
+
+        private static int? GetMinionId(SqlConnection connection, string minionName)
+        {
+            var minionIdQuery = "SELECT Id FROM Minions WHERE Name = @Name";
+            var minionIdCommand = new SqlCommand(minionIdQuery, connection);
+            minionIdCommand.Parameters.AddWithValue("@Name", minionName);
+            var minionId = minionIdCommand.ExecuteScalar();
+            return (int?)minionId;
+        }
+
+        private static void CreateMinion(SqlConnection connection, string minionName, int age, int? townId)
+        {
+            string createMinion = "INSERT INTO Minions (Name, Age, TownId) VALUES (@name, @age, @townId)";
+            var sqlCommand = new SqlCommand(createMinion, connection);
+            sqlCommand.Parameters.AddWithValue("@name", minionName);
+            sqlCommand.Parameters.AddWithValue("@age", age);
+            sqlCommand.Parameters.AddWithValue("@townId", townId);
+            sqlCommand.ExecuteNonQuery();
+        }
+
+        private static int? GetVillainId(SqlConnection connection, string villainName)
+        {
+            string query = "SELECT Id FROM Villains WHERE Name = @Name";
+            using var sqlCommand = new SqlCommand(query, connection);
+            sqlCommand.Parameters.AddWithValue("@Name", villainName);
+            var villainId = sqlCommand.ExecuteScalar();
+            return (int?)villainId;
+        }
+
+        private static int? GetTownId(SqlConnection connection, string town)
+        {
+            string townIdQuery = "SELECT Id FROM Towns WHERE Name = @townName";
+            using var sqlCommand = new SqlCommand(townIdQuery, connection);
+            sqlCommand.Parameters.AddWithValue("@townName", town);
+            var townId = sqlCommand.ExecuteScalar();
+            return (int?)townId;
         }
 
         private static void GetVillainNames(SqlConnection connection)
