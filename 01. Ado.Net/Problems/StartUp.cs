@@ -23,7 +23,9 @@ namespace AdoNetExercise
 
             // ChangeTownNamesCasing(connection);
 
-            // RemoveVillain(connection);
+            RemoveVillain(connection);
+
+
 
         }
 
@@ -36,7 +38,29 @@ namespace AdoNetExercise
             sqlCommand.Parameters.AddWithValue("@villainId", villainId);
             var name = (string)sqlCommand.ExecuteScalar();
 
-            Console.WriteLine(name);
+            if (name == null)
+            {
+                Console.WriteLine("No such villain was found.");
+                return;
+            }
+
+            var deleteMinionsVillainsQuery = @"DELETE FROM MinionsVillains 
+      WHERE VillainId = @villainId";
+
+          using var sqlDeleteMinVilCommand = new SqlCommand(deleteMinionsVillainsQuery, connection);
+            sqlDeleteMinVilCommand.Parameters.AddWithValue("@villainId", villainId);
+           var affectedRows = sqlDeleteMinVilCommand.ExecuteNonQuery();
+            
+
+            var deleteVillainsQuery = @"DELETE FROM Villains
+      WHERE Id = @villainId";
+           using var sqlDeleteVillainCommand = new SqlCommand(deleteVillainsQuery, connection);
+            sqlDeleteVillainCommand.Parameters.AddWithValue("@villainId", villainId);
+            sqlDeleteVillainCommand.ExecuteNonQuery();
+
+
+            Console.WriteLine($"{name} was deleted.");
+            Console.WriteLine($"{affectedRows} minions were released.");
         }
 
         private static void ChangeTownNamesCasing(SqlConnection connection)
