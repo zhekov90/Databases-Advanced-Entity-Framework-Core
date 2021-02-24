@@ -14,9 +14,34 @@ namespace SoftUni
         {
             var softUniContext = new SoftUniContext();
 
-            var result = GetEmployeesInPeriod(softUniContext);
+            var result = GetAddressesByTown(softUniContext);
             Console.WriteLine(result);
 
+        }
+
+        public static string GetAddressesByTown(SoftUniContext context)
+        {
+            var addresses = context.Addresses
+                .Select(x=> new
+                {
+                    x.AddressText,
+                    TownName = x.Town.Name,
+                    EmployeeCount = x.Employees.Count
+                })
+                .OrderByDescending(x => x.EmployeeCount)
+                .ThenBy(x => x.TownName)
+                .ThenBy(x => x.AddressText)
+                .Take(10)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var address in addresses)
+            {
+                sb.AppendLine($"{address.AddressText}, {address.TownName} - {address.EmployeeCount} employees");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetEmployeesInPeriod(SoftUniContext context)
