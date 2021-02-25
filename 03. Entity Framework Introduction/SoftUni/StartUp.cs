@@ -14,9 +14,36 @@ namespace SoftUni
         {
             var softUniContext = new SoftUniContext();
 
-            var result = GetLatestProjects(softUniContext);
+            var result = IncreaseSalaries(softUniContext);
             Console.WriteLine(result);
 
+        }
+
+        public static string IncreaseSalaries(SoftUniContext context)
+        {
+            var employees = context.Employees
+                .Where(x => x.Department.Name == "Engineering" ||
+                x.Department.Name == "Tool Design" ||
+                x.Department.Name == "Marketing" ||
+                x.Department.Name == "Information Services")
+                .OrderBy(x => x.FirstName)
+                .ThenBy(x => x.LastName)
+                .ToList();
+
+            foreach (var emp in employees)
+            {
+                emp.Salary *= 1.12m;
+            }
+            context.SaveChanges();
+
+            var sb = new StringBuilder();
+
+            foreach (var employee in employees)
+            {
+                sb.AppendLine($"{employee.FirstName} {employee.LastName} (${employee.Salary:f2})");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetLatestProjects(SoftUniContext context)
@@ -24,8 +51,8 @@ namespace SoftUni
             var projects = context.Projects
                 .OrderByDescending(x => x.StartDate)
                 .Take(10)
-                .OrderBy(x=>x.Name)
-                .Select(x=>new
+                .OrderBy(x => x.Name)
+                .Select(x => new
                 {
                     x.Name,
                     x.Description,
