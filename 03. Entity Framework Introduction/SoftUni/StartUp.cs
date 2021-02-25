@@ -14,15 +14,45 @@ namespace SoftUni
         {
             var softUniContext = new SoftUniContext();
 
-            var result = GetAddressesByTown(softUniContext);
+            var result = GetEmployee147(softUniContext);
             Console.WriteLine(result);
 
+        }
+
+        public static string GetEmployee147(SoftUniContext context)
+        {
+            var employee147 = context.Employees
+                .Select(x => new Employee
+                {
+                    EmployeeId = x.EmployeeId,
+                    FirstName = x.FirstName,
+                    LastName = x.LastName,
+                    JobTitle = x.JobTitle,
+                    EmployeesProjects = x.EmployeesProjects.Select(p => new EmployeeProject
+                    {
+                        Project = p.Project
+                    })
+                     .OrderBy(x => x.Project.Name)
+                     .ToList()
+                })
+                .FirstOrDefault(x => x.EmployeeId == 147);
+
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"{employee147.FirstName} {employee147.LastName} - {employee147.JobTitle}");
+
+            foreach (var project in employee147.EmployeesProjects)
+            {
+                sb.AppendLine($"{project.Project.Name}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetAddressesByTown(SoftUniContext context)
         {
             var addresses = context.Addresses
-                .Select(x=> new
+                .Select(x => new
                 {
                     x.AddressText,
                     TownName = x.Town.Name,
