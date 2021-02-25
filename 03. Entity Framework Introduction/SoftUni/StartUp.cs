@@ -14,9 +14,73 @@ namespace SoftUni
         {
             var softUniContext = new SoftUniContext();
 
-            var result = GetEmployeesByFirstNameStartingWithSa(softUniContext);
+            var result = RemoveTown(softUniContext);
             Console.WriteLine(result);
 
+        }
+
+        public static string RemoveTown(SoftUniContext context)
+        {
+            var townToRemove = context.Towns
+              .FirstOrDefault(t => t.Name == "Seattle");
+
+            var addresses = context.Addresses
+              .Where(a => a.TownId == townToRemove.TownId);
+
+            var count = addresses.Count();
+
+            var employees = context.Employees
+                .Where(e => addresses.Any(a=>a.AddressId == e.AddressId));
+
+            foreach (var employee in employees)
+            {
+                employee.AddressId = null;
+            }
+
+            foreach (var address in addresses)
+            {
+                context.Addresses.Remove(address);
+            }
+
+            context.Towns.Remove(townToRemove);
+
+            context.SaveChanges();
+
+            return $"{count} addresses in Seattle were deleted";
+
+        }
+
+        public static string DeleteProjectById(SoftUniContext context)
+        {
+            var sb = new StringBuilder();
+
+            var projectToDelete = context.Projects
+                .FirstOrDefault(p => p.ProjectId == 2);
+
+            var empProjectsToDelete = context.EmployeesProjects
+                .Where(ep => ep.ProjectId == 2)
+                .ToList();
+
+            foreach (var empProject in empProjectsToDelete)
+            {
+                context.EmployeesProjects.Remove(empProject);
+            }
+
+            context.Projects.Remove(projectToDelete);
+
+            context.SaveChanges();
+
+            var projects = context.Projects
+                .Select(p => p.Name)
+                .Take(10)
+                .ToList();
+
+            foreach (var p in projects)
+            {
+                sb.AppendLine($"{p}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetEmployeesByFirstNameStartingWithSa(SoftUniContext context)
@@ -31,7 +95,7 @@ namespace SoftUni
 
             foreach (var e in employees)
             {
-            sb.AppendLine($"{e.FirstName} {e.LastName} - {e.JobTitle} - (${e.Salary:f2})");
+                sb.AppendLine($"{e.FirstName} {e.LastName} - {e.JobTitle} - (${e.Salary:f2})");
             }
 
             return sb.ToString().TrimEnd();
