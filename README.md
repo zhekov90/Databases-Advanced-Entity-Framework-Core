@@ -13,7 +13,7 @@ JSON processing<br/>
 XML processing<br/>
 Best practices and Architecture<br/>
 
-# Summary:<br/>
+# Duration of course:<br/>
 <br/>
-Duration of course: 15/02/2021 - 03/04/2021<br/>
+15/02/2021 - 03/04/2021<br/>
 <br/>
