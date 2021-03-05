@@ -1,6 +1,6 @@
 ﻿namespace BookShop
 {
-    
+
     using BookShop.Models.Enums;
     using Data;
     using Initializer;
@@ -12,7 +12,7 @@
     {
         public static void Main()
         {
-             var db = new BookShopContext();
+            var db = new BookShopContext();
             // DbInitializer.ResetDatabase(db);
 
 
@@ -26,10 +26,37 @@
             //var result = GetBooksByPrice(db);
 
             //4. Not Released In
-            int year = int.Parse(Console.ReadLine());
-            var result = GetBooksNotReleasedIn(db, year);
+            //int year = int.Parse(Console.ReadLine());
+            //var result = GetBooksNotReleasedIn(db, year);
+
+            //5. Book Titles by Category
+            var input = Console.ReadLine();
+            var result = GetBooksByCategory(db, input);
 
             Console.WriteLine(result);
+        }
+
+        public static string GetBooksByCategory(BookShopContext context, string input)
+        {
+            var categories = input
+                     .Split(" ", StringSplitOptions.RemoveEmptyEntries)
+                     .Select(c => c.ToLower())
+                     .ToList();
+
+            var books = context.Books
+                .Where(x => x.BookCategories.Any(c => categories.Contains(c.Category.Name.ToLower())))
+                .Select(x=>x.Title)
+                .OrderBy(title=>title)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var book in books)
+            {
+                sb.AppendLine($"{book}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetBooksNotReleasedIn(BookShopContext context, int year)
@@ -77,14 +104,14 @@
             var goldenBooks = context.Books
                 .Where(x => x.EditionType == EditionType.Gold && x.Copies < 5000)
                 .Select(x => new
-                { 
+                {
                     x.BookId,
-                    x.Title 
+                    x.Title
                 })
                 .OrderBy(x => x.BookId)
                 .ToList();
 
-            var result = string.Join(Environment.NewLine, goldenBooks.Select(x=>x.Title));
+            var result = string.Join(Environment.NewLine, goldenBooks.Select(x => x.Title));
 
             return result;
         }
@@ -95,7 +122,7 @@
 
             var books = context.Books
                 .Where(x => x.AgeRestriction == ageRestriction)
-                .Select(x=>x.Title)
+                .Select(x => x.Title)
                 .OrderBy(title => title)
                 .ToList();
 
