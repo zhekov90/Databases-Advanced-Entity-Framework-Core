@@ -23,9 +23,30 @@
             // var result = GetGoldenBooks(db);
 
             //3. Books by Price
-            var result = GetBooksByPrice(db);
+            //var result = GetBooksByPrice(db);
+
+            //4. Not Released In
+            int year = int.Parse(Console.ReadLine());
+            var result = GetBooksNotReleasedIn(db, year);
 
             Console.WriteLine(result);
+        }
+
+        public static string GetBooksNotReleasedIn(BookShopContext context, int year)
+        {
+            var books = context.Books
+                .Where(x => x.ReleaseDate.HasValue && x.ReleaseDate.Value.Year != year)
+                .OrderBy(x => x.BookId)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var book in books)
+            {
+                sb.AppendLine($"{book.Title}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetBooksByPrice(BookShopContext context)
