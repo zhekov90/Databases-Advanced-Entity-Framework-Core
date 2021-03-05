@@ -20,9 +20,34 @@
             //  var result = GetBooksByAgeRestriction(db, "miNor");
 
             //2. Golden Books
-            var result = GetGoldenBooks(db);
+            // var result = GetGoldenBooks(db);
+
+            //3. Books by Price
+            var result = GetBooksByPrice(db);
 
             Console.WriteLine(result);
+        }
+
+        public static string GetBooksByPrice(BookShopContext context)
+        {
+            var books = context.Books
+                .Where(x => x.Price > 40)
+                .Select(x => new
+                {
+                    x.Title,
+                    x.Price
+                })
+                .OrderByDescending(x => x.Price)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var book in books)
+            {
+                sb.AppendLine($"{book.Title} - ${book.Price:f2}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetGoldenBooks(BookShopContext context)
