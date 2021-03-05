@@ -5,6 +5,7 @@
     using Data;
     using Initializer;
     using System;
+    using System.Globalization;
     using System.Linq;
     using System.Text;
 
@@ -30,10 +31,39 @@
             //var result = GetBooksNotReleasedIn(db, year);
 
             //5. Book Titles by Category
+            //var input = Console.ReadLine();
+            //var result = GetBooksByCategory(db, input);
+
+            //6. Released Before Date
             var input = Console.ReadLine();
-            var result = GetBooksByCategory(db, input);
+            var result = GetBooksReleasedBefore(db, input);
 
             Console.WriteLine(result);
+        }
+
+        public static string GetBooksReleasedBefore(BookShopContext context, string date)
+        {
+            var targetDate = DateTime.ParseExact(date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
+            var books = context.Books
+                .Where(x => x.ReleaseDate.HasValue && x.ReleaseDate.Value < targetDate)
+                .Select(x=>new
+                {
+                    x.ReleaseDate,
+                    x.Title,
+                    x.EditionType,
+                    x.Price
+                })
+                .OrderByDescending(x=>x.ReleaseDate)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var book in books)
+            {
+                sb.AppendLine($"{book.Title} - {book.EditionType} - ${book.Price:f2}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetBooksByCategory(BookShopContext context, string input)
