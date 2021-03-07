@@ -39,10 +39,32 @@
             // var result = GetBooksReleasedBefore(db, input);
 
             //7. Author Search
+            // var input = Console.ReadLine();
+            // var result = GetAuthorNamesEndingIn(db, input);
+
+            //8. Book Search
             var input = Console.ReadLine();
-            var result = GetAuthorNamesEndingIn(db, input);
+            var result = GetBookTitlesContaining(db, input);
 
             Console.WriteLine(result);
+        }
+
+        public static string GetBookTitlesContaining(BookShopContext context, string input)
+        {
+            var books = context.Books
+                .Where(x => x.Title.ToLower().Contains(input.ToLower()))
+                .OrderBy(x => x.Title)
+                .Select(x=>x.Title)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var book in books)
+            {
+                sb.AppendLine($"{book}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetAuthorNamesEndingIn(BookShopContext context, string input)
@@ -68,14 +90,14 @@
             var targetDate = DateTime.ParseExact(date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
             var books = context.Books
                 .Where(x => x.ReleaseDate.HasValue && x.ReleaseDate.Value < targetDate)
-                .Select(x=>new
+                .Select(x => new
                 {
                     x.ReleaseDate,
                     x.Title,
                     x.EditionType,
                     x.Price
                 })
-                .OrderByDescending(x=>x.ReleaseDate)
+                .OrderByDescending(x => x.ReleaseDate)
                 .ToList();
 
             var sb = new StringBuilder();
@@ -97,8 +119,8 @@
 
             var books = context.Books
                 .Where(x => x.BookCategories.Any(c => categories.Contains(c.Category.Name.ToLower())))
-                .Select(x=>x.Title)
-                .OrderBy(title=>title)
+                .Select(x => x.Title)
+                .OrderBy(title => title)
                 .ToList();
 
             var sb = new StringBuilder();
