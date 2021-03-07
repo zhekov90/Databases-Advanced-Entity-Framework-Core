@@ -35,10 +35,32 @@
             //var result = GetBooksByCategory(db, input);
 
             //6. Released Before Date
+            // var input = Console.ReadLine();
+            // var result = GetBooksReleasedBefore(db, input);
+
+            //7. Author Search
             var input = Console.ReadLine();
-            var result = GetBooksReleasedBefore(db, input);
+            var result = GetAuthorNamesEndingIn(db, input);
 
             Console.WriteLine(result);
+        }
+
+        public static string GetAuthorNamesEndingIn(BookShopContext context, string input)
+        {
+            var authors = context.Authors
+                .Where(x => x.FirstName.EndsWith(input))
+                .OrderBy(x => x.FirstName)
+                .ThenBy(x => x.LastName)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var a in authors)
+            {
+                sb.AppendLine($"{a.FirstName} {a.LastName}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetBooksReleasedBefore(BookShopContext context, string date)
