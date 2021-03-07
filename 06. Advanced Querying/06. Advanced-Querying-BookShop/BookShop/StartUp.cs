@@ -64,8 +64,32 @@
             //var result = GetMostRecentBooks(db);
 
             //14. Increase Prices
-            IncreasePrices(db);
+            //IncreasePrices(db);
 
+            //15.Remove Books
+           var result = RemoveBooks(db);
+            Console.WriteLine(result);
+
+        }
+
+        public static int RemoveBooks(BookShopContext context)
+        {
+            var booksCategories = context.BooksCategories
+               .Where(x => x.Book.Copies < 4200);
+
+            var books = context.Books
+                .Where(x => x.Copies < 4200);
+
+            var count = books.Count();
+
+
+            context.BooksCategories.RemoveRange(booksCategories);
+
+            context.Books.RemoveRange(books);
+
+            context.SaveChanges();
+           
+            return count;
         }
 
         public static void IncreasePrices(BookShopContext context)
