@@ -1,6 +1,6 @@
 ﻿namespace BookShop
 {
-
+    using BookShop.Models;
     using BookShop.Models.Enums;
     using Data;
     using Initializer;
@@ -51,17 +51,42 @@
             // var result = GetBooksByAuthor(db, input);
 
             //10. Count Books
-            var lengthCheck = int.Parse(Console.ReadLine());
-            var result = CountBooks(db, lengthCheck);
+            //var lengthCheck = int.Parse(Console.ReadLine());
+            //var result = CountBooks(db, lengthCheck);
+
+            //11.Total Book Copies
+            var result = CountCopiesByAuthor(db);
 
             Console.WriteLine(result);
+        }
+
+        public static string CountCopiesByAuthor(BookShopContext context)
+        {
+            var authorBooks = context.Authors
+                .Select(x => new
+                {
+                    FirstName = x.FirstName,
+                    LastName = x.LastName,
+                    CountOfBooks = x.Books.Sum(b => b.Copies)
+                })
+                .OrderByDescending(x => x.CountOfBooks)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var a in authorBooks)
+            {
+                sb.AppendLine($"{a.FirstName} {a.LastName} - {a.CountOfBooks}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static int CountBooks(BookShopContext context, int lengthCheck)
         {
             var countOfBooks = context.Books
                 .Where(x => x.Title.Length > lengthCheck)
-                .Select(x=>x.Title)
+                .Select(x => x.Title)
                 .ToList();
 
             return countOfBooks.Count();
