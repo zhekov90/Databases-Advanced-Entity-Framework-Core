@@ -61,9 +61,23 @@
             //var result = GetTotalProfitByCategory(db);
 
             //13. Most Recent Books
-            var result = GetMostRecentBooks(db);
+            //var result = GetMostRecentBooks(db);
 
-            Console.WriteLine(result);
+            //14. Increase Prices
+            IncreasePrices(db);
+
+        }
+
+        public static void IncreasePrices(BookShopContext context)
+        {
+            var booksBefore2010 = context.Books
+                .Where(x => x.ReleaseDate.HasValue && x.ReleaseDate.Value.Year < 2010)
+                .ToList();
+
+            foreach (var b in booksBefore2010)
+            {
+                b.Price += 5;
+            }
         }
 
         public static string GetMostRecentBooks(BookShopContext context)
