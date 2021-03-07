@@ -58,9 +58,43 @@
             //var result = CountCopiesByAuthor(db);
 
             //12. Profit by Category
-            var result = GetTotalProfitByCategory(db);
+            //var result = GetTotalProfitByCategory(db);
+
+            //13. Most Recent Books
+            var result = GetMostRecentBooks(db);
 
             Console.WriteLine(result);
+        }
+
+        public static string GetMostRecentBooks(BookShopContext context)
+        {
+            var categories = context.Categories
+                .Select(c => new
+                {
+                    c.Name,
+                    CategoryBooks = c.CategoryBooks.Select(cb => new
+                    {
+                        BookTitle = cb.Book.Title,
+                        ReleaseDate = cb.Book.ReleaseDate
+                    })
+                   .OrderByDescending(cb => cb.ReleaseDate)
+                   .Take(3)
+                })
+                .OrderBy(c => c.Name)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var category in categories)
+            {
+                sb.AppendLine($"--{category.Name}");
+                foreach (var book in category.CategoryBooks)
+                {
+                    sb.AppendLine($"{book.BookTitle} ({book.ReleaseDate.Value.Year})");
+                }
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetTotalProfitByCategory(BookShopContext context)
