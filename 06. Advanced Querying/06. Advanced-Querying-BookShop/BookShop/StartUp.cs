@@ -43,10 +43,52 @@
             // var result = GetAuthorNamesEndingIn(db, input);
 
             //8. Book Search
-            var input = Console.ReadLine();
-            var result = GetBookTitlesContaining(db, input);
+            // var input = Console.ReadLine();
+            // var result = GetBookTitlesContaining(db, input);
+
+            //9. Book Search by Author
+            // var input = Console.ReadLine();
+            // var result = GetBooksByAuthor(db, input);
+
+            //10. Count Books
+            var lengthCheck = int.Parse(Console.ReadLine());
+            var result = CountBooks(db, lengthCheck);
 
             Console.WriteLine(result);
+        }
+
+        public static int CountBooks(BookShopContext context, int lengthCheck)
+        {
+            var countOfBooks = context.Books
+                .Where(x => x.Title.Length > lengthCheck)
+                .Select(x=>x.Title)
+                .ToList();
+
+            return countOfBooks.Count();
+        }
+
+        public static string GetBooksByAuthor(BookShopContext context, string input)
+        {
+            var books = context.Books
+                .Where(x => x.Author.LastName.ToLower().StartsWith(input.ToLower()))
+                .Select(x => new
+                {
+                    BookId = x.BookId,
+                    Title = x.Title,
+                    AuthorFirstName = x.Author.FirstName,
+                    AuthorLastName = x.Author.LastName
+                })
+                .OrderBy(x => x.BookId)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            foreach (var book in books)
+            {
+                sb.AppendLine($"{book.Title} ({book.AuthorFirstName} {book.AuthorLastName})");
+            }
+
+            return sb.ToString().TrimEnd();
         }
 
         public static string GetBookTitlesContaining(BookShopContext context, string input)
@@ -54,7 +96,7 @@
             var books = context.Books
                 .Where(x => x.Title.ToLower().Contains(input.ToLower()))
                 .OrderBy(x => x.Title)
-                .Select(x=>x.Title)
+                .Select(x => x.Title)
                 .ToList();
 
             var sb = new StringBuilder();
