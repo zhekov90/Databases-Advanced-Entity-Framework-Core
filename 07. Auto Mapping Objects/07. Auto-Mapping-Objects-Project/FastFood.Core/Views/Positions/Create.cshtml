@@ -1,15 +1,15 @@
 ﻿@{
-    ViewData["Title"] = "Create Position";
+    ViewData["Title"] = "Създай длъжност";
 }
-<h1 class="text-center">Create Position</h1>
+<h1 class="text-center">Създай длъжност</h1>
 <hr class="bg-secondary half-width" />
 <form class="mx-auto half-width" asp-controller="Positions" asp-action="Create" method="post">
     <div class="form-group">
-        <label for="positionName">Position Name</label>
-        <input type="text" class="form-control" id="positionName" placeholder="Position Name..." name="positionName">
+        <label for="positionName">Име на длъжността</label>
+        <input type="text" class="form-control" id="positionName" placeholder="Въведете име на длъжността (позицията)..." name="positionName">
     </div>
     <hr class="bg-secondary half-width" />
     <div class="button-holder d-flex justify-content-center">
-        <button type="submit" class="btn ">Create</button>
+        <button type="submit" class="btn-success">Създай</button>
     </div>
 </form>

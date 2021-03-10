@@ -4,11 +4,16 @@
     using FastFood.Core.ViewModels.Categories;
     using FastFood.Core.ViewModels.Employees;
     using FastFood.Core.ViewModels.Items;
+    using FastFood.Core.ViewModels.Orders;
     using FastFood.Models;
+    using FastFood.Models.Enums;
+    using System;
+    using System.Globalization;
     using ViewModels.Positions;
 
     public class FastFoodProfile : Profile
     {
+            private const string bgCulture = "bg-BG";
         public FastFoodProfile()
         {
             //Positions
@@ -39,6 +44,21 @@
 
             this.CreateMap<Item, ItemsAllViewModels>()
                 .ForMember(x=>x.Category,y=>y.MapFrom(s=>s.Category.Name));
+
+            //Orders
+            this.CreateMap<CreateOrderInputModel, Order>()
+                .ForMember(x => x.DateTime, y => y.MapFrom(s => DateTime.UtcNow))
+                .ForMember(x => x.Type, y => y.MapFrom(s => OrderType.ToGo));
+
+            this.CreateMap<CreateOrderInputModel, OrderItem>()
+                .ForMember(x => x.ItemId, y => y.MapFrom(s => s.ItemId))
+                .ForMember(x => x.Quantity, y => y.MapFrom(s => s.Quantity));
+
+            this.CreateMap<Order, OrderAllViewModel>()
+                .ForMember(x => x.Employee, y => y.MapFrom(s => s.Employee.Name))
+                .ForMember(x => x.DateTime,
+                    y => y.MapFrom(s => s.DateTime.ToString("dd.MM.yyг. HH:mm:ssч. (dddd)", new CultureInfo("bg-BG"))))
+                .ForMember(x => x.OrderId, y => y.MapFrom(s => s.Id));
         }
     }
 }
