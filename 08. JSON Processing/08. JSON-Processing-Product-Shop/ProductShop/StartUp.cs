@@ -18,10 +18,24 @@ namespace ProductShop
             // ResetDatabase(db);
 
             //Query 2. Import Users
-            string inputJson = File.ReadAllText("../../../Datasets/users.json");
-            var result = ImportUsers(db, inputJson);
+            //string inputJson = File.ReadAllText("../../../Datasets/users.json");
+            //var result = ImportUsers(db, inputJson);
+            //Console.WriteLine(result);
 
+            //Query 3. Import Products
+            string inputJson = File.ReadAllText("../../../Datasets/products.json");
+            var result = ImportProducts(db, inputJson);
             Console.WriteLine(result);
+        }
+
+        public static string ImportProducts(ProductShopContext context, string inputJson)
+        {
+            var products = JsonConvert.DeserializeObject<List<Product>>(inputJson);
+
+            context.AddRange(products);
+            context.SaveChanges();
+
+            return $"Successfully imported {products.Count}";
         }
 
         public static string ImportUsers(ProductShopContext context, string inputJson)
