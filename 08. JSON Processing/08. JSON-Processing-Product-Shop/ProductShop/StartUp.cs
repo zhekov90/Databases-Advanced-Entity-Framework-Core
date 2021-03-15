@@ -36,14 +36,33 @@ namespace ProductShop
             //Console.WriteLine(result);
 
             //04. Import Categories and Products
-            string inputJson = File.ReadAllText("../../../Datasets/categories-products.json");
-            var result = ImportCategoryProducts(db, inputJson);
-            Console.WriteLine(result);
+            //string inputJson = File.ReadAllText("../../../Datasets/categories-products.json");
+            //var result = ImportCategoryProducts(db, inputJson);
+            //Console.WriteLine(result);
 
+            //05. Export Products In Range
+            var result = GetProductsInRange(db);
+            File.WriteAllText("../../../Datasets/products-in-range.json", result);
 
         }
 
+        public static string GetProductsInRange(ProductShopContext context)
+        {
+            var products = context.Products
+                .Where(p => p.Price >= 500 && p.Price <= 1000)
+                .Select(x=>new
+                {
+                    name = x.Name,
+                    price = x.Price,
+                    seller = x.Seller.FirstName + " " + x.Seller.LastName
+                })
+                .OrderBy(x=>x.price)
+                .ToList();
 
+            var result = JsonConvert.SerializeObject(products, Formatting.Indented);
+
+            return result;
+        }
 
         public static string ImportCategoryProducts(ProductShopContext context, string inputJson)
         {
