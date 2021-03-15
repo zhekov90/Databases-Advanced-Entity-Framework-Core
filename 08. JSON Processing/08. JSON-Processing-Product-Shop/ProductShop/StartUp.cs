@@ -45,12 +45,32 @@ namespace ProductShop
             //File.WriteAllText("../../../Datasets/products-in-range.json", result);
 
             //06. Export Sold Products
-            var result = GetSoldProducts(db);
-            File.WriteAllText("../../../Datasets/users-sold-products.json", result);
+            //var result = GetSoldProducts(db);
+            //File.WriteAllText("../../../Datasets/users-sold-products.json", result);
 
             //07. Export Categories By Products Count
+            var result = GetCategoriesByProductsCount(db);
+            File.WriteAllText("../../../Datasets/categories-by-products.json", result);
+
+        }
+
+        public static string GetCategoriesByProductsCount(ProductShopContext context)
+        {
+            var categoriesInfo = context.Categories
+                .Select(x => new
+                {
+                    category = x.Name,
+                    productsCount = x.CategoryProducts.Count(),
+                    averagePrice = x.CategoryProducts.Average(p => p.Product.Price).ToString("f2"),
+                    totalRevenue = x.CategoryProducts.Sum(p => p.Product.Price).ToString("f2")
+                })
+                .OrderByDescending(x => x.productsCount)
+                .ToList();
 
 
+            var result = JsonConvert.SerializeObject(categoriesInfo, Formatting.Indented);
+
+            return result;
         }
 
         public static string GetSoldProducts(ProductShopContext context)
@@ -70,8 +90,8 @@ namespace ProductShop
                     })
                     .ToList()
                 })
-                .OrderBy(x=>x.lastName)
-                .ThenBy(x=>x.firstName)
+                .OrderBy(x => x.lastName)
+                .ThenBy(x => x.firstName)
                 .ToList();
 
             var result = JsonConvert.SerializeObject(users, Formatting.Indented);
