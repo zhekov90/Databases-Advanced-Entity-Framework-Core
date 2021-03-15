@@ -46,7 +46,10 @@ namespace ProductShop
 
             //06. Export Sold Products
             var result = GetSoldProducts(db);
-            Console.WriteLine(result);
+            File.WriteAllText("../../../Datasets/users-sold-products.json", result);
+
+            //07. Export Categories By Products Count
+
 
         }
 
