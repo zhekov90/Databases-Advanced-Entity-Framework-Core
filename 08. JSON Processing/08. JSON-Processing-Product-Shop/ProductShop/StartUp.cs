@@ -41,22 +41,52 @@ namespace ProductShop
             //Console.WriteLine(result);
 
             //05. Export Products In Range
-            var result = GetProductsInRange(db);
-            File.WriteAllText("../../../Datasets/products-in-range.json", result);
+            //var result = GetProductsInRange(db);
+            //File.WriteAllText("../../../Datasets/products-in-range.json", result);
 
+            //06. Export Sold Products
+            var result = GetSoldProducts(db);
+            Console.WriteLine(result);
+
+        }
+
+        public static string GetSoldProducts(ProductShopContext context)
+        {
+            var users = context.Users
+                .Where(u => u.ProductsSold.Any(p => p.BuyerId != null))
+                .Select(x => new
+                {
+                    firstName = x.FirstName,
+                    lastName = x.LastName,
+                    soldProducts = x.ProductsSold.Where(p => p.BuyerId != null).Select(b => new
+                    {
+                        name = b.Name,
+                        price = b.Price,
+                        buyerFirstName = b.Buyer.FirstName,
+                        buyerLastName = b.Buyer.LastName
+                    })
+                    .ToList()
+                })
+                .OrderBy(x=>x.lastName)
+                .ThenBy(x=>x.firstName)
+                .ToList();
+
+            var result = JsonConvert.SerializeObject(users, Formatting.Indented);
+
+            return result;
         }
 
         public static string GetProductsInRange(ProductShopContext context)
         {
             var products = context.Products
                 .Where(p => p.Price >= 500 && p.Price <= 1000)
-                .Select(x=>new
+                .Select(x => new
                 {
                     name = x.Name,
                     price = x.Price,
                     seller = x.Seller.FirstName + " " + x.Seller.LastName
                 })
-                .OrderBy(x=>x.price)
+                .OrderBy(x => x.price)
                 .ToList();
 
             var result = JsonConvert.SerializeObject(products, Formatting.Indented);
