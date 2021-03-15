@@ -12,25 +12,28 @@ namespace ProductShop
 {
     public class StartUp
     {
-        static IMapper mapper;
         public static void Main(string[] args)
         {
             var db = new ProductShopContext();
-            db.Database.EnsureDeleted();
-            db.Database.EnsureCreated();
+
+            InitializeMapper();
+            //ResetDatabase(db);
 
             //01. Import Users
-            string inputJson = File.ReadAllText("../../../Datasets/users.json");
-            var result = ImportUsers(db, inputJson);
-            Console.WriteLine(result);
+            //string inputJson = File.ReadAllText("../../../Datasets/users.json");
+            //var result = ImportUsers(db, inputJson);
+            //Console.WriteLine(result);
 
             //02. Import Products
             //string inputJson = File.ReadAllText("../../../Datasets/products.json");
+
             //var result = ImportProducts(db, inputJson);
+            //Console.WriteLine(result);
 
             //03. Import Categories
-            //string inputJson = File.ReadAllText("../../../Datasets/categories.json");
-            //var result = ImportCategories(db, inputJson);
+            string inputJson = File.ReadAllText("../../../Datasets/categories.json");
+            var result = ImportCategories(db, inputJson);
+            Console.WriteLine(result);
 
             //04. Import Categories and Products
             //string inputJson = File.ReadAllText("../../../Datasets/categories-products.json");
@@ -40,7 +43,7 @@ namespace ProductShop
 
         }
 
-       
+
 
         public static string ImportCategoryProducts(ProductShopContext context, string inputJson)
         {
@@ -54,21 +57,23 @@ namespace ProductShop
 
         public static string ImportCategories(ProductShopContext context, string inputJson)
         {
-            var categories = JsonConvert.DeserializeObject<Category[]>(inputJson)
-                .Where(c => c.Name != null)
-                .ToArray();
+            var dtoCategories = JsonConvert.DeserializeObject<IEnumerable<CategoryInputModel>>(inputJson)
+                .Where(c => c.Name != null);
 
-            context.AddRange(categories);
+            var categories = Mapper.Map<IEnumerable<Category>>(dtoCategories);
+
+            context.Categories.AddRange(categories);
             context.SaveChanges();
 
-            return $"Successfully imported {categories.Length}";
+            return $"Successfully imported {categories.Count()}";
         }
 
         public static string ImportProducts(ProductShopContext context, string inputJson)
         {
             var products = JsonConvert.DeserializeObject<List<Product>>(inputJson);
 
-            context.AddRange(products);
+            context.Products.AddRange(products);
+
             context.SaveChanges();
 
             return $"Successfully imported {products.Count}";
@@ -76,26 +81,40 @@ namespace ProductShop
 
         public static string ImportUsers(ProductShopContext context, string inputJson)
         {
-            InitializeAutomapper();
+            var serializerSettings = new JsonSerializerSettings()
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                DefaultValueHandling = DefaultValueHandling.Ignore
+            };
 
-            var dtoUsers = JsonConvert.DeserializeObject<IEnumerable<UserInputModel>>(inputJson);
+            var usersDTO = JsonConvert.DeserializeObject<List<UserInputModel>>(inputJson, serializerSettings);
 
-            var users = mapper.Map<IEnumerable<User>>(dtoUsers);
+            var users = usersDTO
+                .Select(udto => Mapper.Map<User>(udto))
+                .ToList();
 
             context.Users.AddRange(users);
+
             context.SaveChanges();
 
-            return $"Successfully imported {users.Count()}";
+            return $"Successfully imported {users.Count}";
         }
 
-        private static void InitializeAutomapper()
+        private static void InitializeMapper()
         {
-            var config = new MapperConfiguration(cfg =>
+            Mapper.Initialize(cfg =>
             {
                 cfg.AddProfile<ProductShopProfile>();
             });
+        }
 
-            mapper = config.CreateMapper();
+        private static void ResetDatabase(ProductShopContext db)
+        {
+            db.Database.EnsureDeleted();
+            Console.WriteLine("Db was successfully deleted!");
+
+            db.Database.EnsureCreated();
+            Console.WriteLine("Db was successfully created!");
         }
     }
 }
