@@ -31,14 +31,14 @@ namespace ProductShop
             //Console.WriteLine(result);
 
             //03. Import Categories
-            string inputJson = File.ReadAllText("../../../Datasets/categories.json");
-            var result = ImportCategories(db, inputJson);
-            Console.WriteLine(result);
+            //string inputJson = File.ReadAllText("../../../Datasets/categories.json");
+            //var result = ImportCategories(db, inputJson);
+            //Console.WriteLine(result);
 
             //04. Import Categories and Products
-            //string inputJson = File.ReadAllText("../../../Datasets/categories-products.json");
-            //var result = ImportCategoryProducts(db, inputJson);
-            //Console.WriteLine(result);
+            string inputJson = File.ReadAllText("../../../Datasets/categories-products.json");
+            var result = ImportCategoryProducts(db, inputJson);
+            Console.WriteLine(result);
 
 
         }
@@ -47,12 +47,14 @@ namespace ProductShop
 
         public static string ImportCategoryProducts(ProductShopContext context, string inputJson)
         {
-            var categoryProducts = JsonConvert.DeserializeObject<CategoryProduct[]>(inputJson);
+            var dtoCategoryProducts = JsonConvert.DeserializeObject<IEnumerable<CategoryProductInputModel>>(inputJson);
 
-            context.AddRange(categoryProducts);
+            var categoryProducts = Mapper.Map<IEnumerable<CategoryProduct>>(dtoCategoryProducts);
+
+            context.CategoryProducts.AddRange(categoryProducts);
             context.SaveChanges();
 
-            return $"Successfully imported {categoryProducts.Length}";
+            return $"Successfully imported {categoryProducts.Count()}";
         }
 
         public static string ImportCategories(ProductShopContext context, string inputJson)
