@@ -5,40 +5,42 @@ using System.Linq;
 using AutoMapper;
 using Newtonsoft.Json;
 using ProductShop.Data;
+using ProductShop.DTOs;
 using ProductShop.Models;
 
 namespace ProductShop
 {
     public class StartUp
     {
+        static IMapper mapper;
         public static void Main(string[] args)
         {
-            ProductShopContext db = new ProductShopContext();
-
-            //ResetDatabase(db);
+            var db = new ProductShopContext();
+            db.Database.EnsureDeleted();
+            db.Database.EnsureCreated();
 
             //01. Import Users
-            //string inputJson = File.ReadAllText("../../../Datasets/users.json");
-            //var result = ImportUsers(db, inputJson);
-            //Console.WriteLine(result);
+            string inputJson = File.ReadAllText("../../../Datasets/users.json");
+            var result = ImportUsers(db, inputJson);
+            Console.WriteLine(result);
 
             //02. Import Products
             //string inputJson = File.ReadAllText("../../../Datasets/products.json");
             //var result = ImportProducts(db, inputJson);
-            //Console.WriteLine(result);
 
             //03. Import Categories
             //string inputJson = File.ReadAllText("../../../Datasets/categories.json");
             //var result = ImportCategories(db, inputJson);
-            //Console.WriteLine(result);
 
             //04. Import Categories and Products
-            string inputJson = File.ReadAllText("../../../Datasets/categories-products.json");
-            var result = ImportCategoryProducts(db, inputJson);
-            Console.WriteLine(result);
+            //string inputJson = File.ReadAllText("../../../Datasets/categories-products.json");
+            //var result = ImportCategoryProducts(db, inputJson);
+            //Console.WriteLine(result);
 
 
         }
+
+       
 
         public static string ImportCategoryProducts(ProductShopContext context, string inputJson)
         {
@@ -53,7 +55,7 @@ namespace ProductShop
         public static string ImportCategories(ProductShopContext context, string inputJson)
         {
             var categories = JsonConvert.DeserializeObject<Category[]>(inputJson)
-                .Where(c=>c.Name != null)
+                .Where(c => c.Name != null)
                 .ToArray();
 
             context.AddRange(categories);
@@ -74,21 +76,26 @@ namespace ProductShop
 
         public static string ImportUsers(ProductShopContext context, string inputJson)
         {
-            User[] users = JsonConvert.DeserializeObject<User[]>(inputJson);
+            InitializeAutomapper();
 
-            context.AddRange(users);
+            var dtoUsers = JsonConvert.DeserializeObject<IEnumerable<UserInputModel>>(inputJson);
+
+            var users = mapper.Map<IEnumerable<User>>(dtoUsers);
+
+            context.Users.AddRange(users);
             context.SaveChanges();
 
-            return $"Successfully imported {users.Length}";
+            return $"Successfully imported {users.Count()}";
         }
 
-        private static void ResetDatabase(ProductShopContext db)
+        private static void InitializeAutomapper()
         {
-            db.Database.EnsureDeleted();
-            Console.WriteLine("Database was successfully deleted!");
-            db.Database.EnsureCreated();
-            Console.WriteLine("Database was successfully created!");
-        }
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile<ProductShopProfile>();
+            });
 
+            mapper = config.CreateMapper();
+        }
     }
 }
