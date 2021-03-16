@@ -24,11 +24,47 @@ namespace CarDealer
             //ImportSuppliers(context, json);
 
             //10. Import Parts
-            var json = File.ReadAllText("../../../Datasets/parts.json");
-            ImportParts(context, json);
+            //var json = File.ReadAllText("../../../Datasets/parts.json");
+            //ImportParts(context, json);
 
+            //11. Import Cars
+            var json = File.ReadAllText("../../../Datasets/cars.json");
+            ImportCars(context, json);
 
+        }
 
+        public static string ImportCars(CarDealerContext context, string inputJson)
+        {
+            var cars = JsonConvert.DeserializeObject<List<ImportCarInputModel>>(inputJson);
+
+            foreach (var carDto in cars)
+            {
+                var car = new Car
+                {
+                    Make = carDto.Make,
+                    Model = carDto.Model,
+                    TravelledDistance = carDto.TravelledDistance
+                };
+
+                context.Cars.Add(car);
+
+                foreach (var partId in carDto.PartsId)
+                {
+                    var partCar = new PartCar
+                    {
+                        CarId = car.Id,
+                        PartId = partId
+                    };
+
+                    if (car.PartCars.FirstOrDefault(p => p.PartId == partId) == null)
+                    {
+                        context.PartCars.Add(partCar);
+                    }
+                }
+            }
+
+            context.SaveChanges();
+            return $"Successfully imported {cars.Count}.";
         }
 
         public static string ImportParts(CarDealerContext context, string inputJson)
@@ -36,7 +72,7 @@ namespace CarDealer
             var suppliedIds = context.Suppliers.Select(x => x.Id).ToArray();
 
             var parts = JsonConvert.DeserializeObject<IEnumerable<Part>>(inputJson)
-                .Where(s=>suppliedIds.Contains(s.SupplierId))
+                .Where(s => suppliedIds.Contains(s.SupplierId))
                 .ToList();
 
             context.AddRange(parts);
