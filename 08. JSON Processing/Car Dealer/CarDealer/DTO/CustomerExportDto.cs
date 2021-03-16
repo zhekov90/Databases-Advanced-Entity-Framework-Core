@@ -4,8 +4,9 @@ using System.Text;
 
 namespace CarDealer.DTO
 {
-   public class CustomerDTO
+   public class CustomerExportDto
     {
+
         public string Name { get; set; }
 
         public DateTime BirthDate { get; set; }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using AutoMapper;
@@ -16,29 +17,51 @@ namespace CarDealer
         {
             var context = new CarDealerContext();
 
-            context.Database.EnsureDeleted();
-            context.Database.EnsureCreated();
+            //context.Database.EnsureDeleted();
+            //context.Database.EnsureCreated();
 
             //09. Import Suppliers
             //var json = File.ReadAllText("../../../Datasets/suppliers.json");
             //ImportSuppliers(context, json);
 
             //10. Import Parts
-            //var json = File.ReadAllText("../../../Datasets/parts.json");
-            //ImportParts(context, json);
+            //var partsJson = File.ReadAllText("../../../Datasets/parts.json");
+            //ImportParts(context, partsJson);
 
             //11. Import Cars
-            //var json = File.ReadAllText("../../../Datasets/cars.json");
-            //ImportCars(context, json);
+            //var carsJson = File.ReadAllText("../../../Datasets/cars.json");
+            //ImportCars(context, carsJson);
 
             //12. Import Customers
-            //var json = File.ReadAllText("../../../Datasets/customers.json");
-            //ImportCustomers(context, json);
+            //var customersJson = File.ReadAllText("../../../Datasets/customers.json");
+            //ImportCustomers(context, customersJson);
 
             //13. Import Sales
-            var json = File.ReadAllText("../../../Datasets/sales.json");
-            ImportSales(context, json);
+            //var salesJson = File.ReadAllText("../../../Datasets/sales.json");
+            //ImportSales(context, salesJson);
 
+            //14. Export Ordered Customers
+            GetOrderedCustomers(context);
+
+
+        }
+
+        public static void GetOrderedCustomers(CarDealerContext context)
+        {
+            var customers = context.Customers
+                    .OrderBy(c => c.BirthDate)
+                    .ThenBy(c => c.IsYoungDriver)
+                    .Select(s => new
+                    {
+                        s.Name,
+                       BirthDate = s.BirthDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
+                        s.IsYoungDriver
+                    })
+                    .ToList();
+
+            var json = JsonConvert.SerializeObject(customers, Formatting.Indented);
+
+            File.WriteAllText("../../../Datasets/ordered-customers.json", json);
         }
 
         public static string ImportSales(CarDealerContext context, string inputJson)
@@ -47,8 +70,8 @@ namespace CarDealer
 
             var sales = salesDto.Select(x => new Sale
             {
-               CarId = x.CarId,
-               CustomerId = x.CustomerId,
+                CarId = x.CarId,
+                CustomerId = x.CustomerId,
                 Discount = x.Discount
             })
                 .ToList();
@@ -62,7 +85,7 @@ namespace CarDealer
 
         public static string ImportCustomers(CarDealerContext context, string inputJson)
         {
-            var customersDto = JsonConvert.DeserializeObject<IEnumerable<CustomerDTO>>(inputJson);
+            var customersDto = JsonConvert.DeserializeObject<IEnumerable<CustomerExportDto>>(inputJson);
 
             var customers = customersDto.Select(x => new Customer
             {
