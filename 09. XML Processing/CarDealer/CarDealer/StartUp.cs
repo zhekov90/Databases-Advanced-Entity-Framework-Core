@@ -25,6 +25,7 @@ namespace CarDealer
             var partsXml = File.ReadAllText("../../../Datasets/parts.xml");
             var carsXml = File.ReadAllText("../../../Datasets/cars.xml");
             var customersXml = File.ReadAllText("../../../Datasets/customers.xml");
+            var salesXml = File.ReadAllText("../../../Datasets/sales.xml");
 
             //09. Import Suppliers
             ImportSuppliers(context, supplierXml);
@@ -40,11 +41,37 @@ namespace CarDealer
 
             //12. Import Customers
             ImportCustomers(context, customersXml);
-            var result = ImportCustomers(context, customersXml);
+            //var result = ImportCustomers(context, customersXml);
 
+            //13. Import Sales
+            ImportSales(context, salesXml);
+            var result = ImportCustomers(context, salesXml);
 
             Console.WriteLine(result);
 
+        }
+
+        public static string ImportSales(CarDealerContext context, string inputXml)
+        {
+            const string root = "Sales";
+            var validCars = context.Cars.Select(x=>x.Id).ToList();
+
+            var salesDto = XmlConverter.Deserializer<SaleInputModel>(inputXml, root);
+
+            var sales = salesDto
+                .Where(x=>validCars.Contains(x.CarId))
+                .Select(x => new Sale
+                {
+                    CarId = x.CarId,
+                    CustomerId = x.CustomerId,
+                    Discount = x.Discount
+                })
+                .ToList();
+
+            context.Sales.AddRange(sales);
+            context.SaveChanges();
+
+            return $"Successfully imported {sales.Count}";
         }
 
         public static string ImportCustomers(CarDealerContext context, string inputXml)
@@ -158,11 +185,12 @@ namespace CarDealer
 
         private static void InitializeAutomapper()
         {
-            var config = new MapperConfiguration(cfg => {
-            cfg.AddProfile<CarDealerProfile>();
-        });
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile<CarDealerProfile>();
+            });
 
-         mapper = config.CreateMapper();
+            mapper = config.CreateMapper();
         }
     }
 }
