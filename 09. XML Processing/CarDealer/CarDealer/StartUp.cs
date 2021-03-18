@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CarDealer.Data;
 using CarDealer.DTOs.Input;
+using CarDealer.DTOs.Output;
 using CarDealer.Models;
 using CarDealer.XmlHelper;
 using System;
@@ -18,39 +19,72 @@ namespace CarDealer
         {
             var context = new CarDealerContext();
 
-            context.Database.EnsureDeleted();
-            context.Database.EnsureCreated();
+            //context.Database.EnsureDeleted();
+            //context.Database.EnsureCreated();
 
-            var supplierXml = File.ReadAllText("../../../Datasets/suppliers.xml");
-            var partsXml = File.ReadAllText("../../../Datasets/parts.xml");
-            var carsXml = File.ReadAllText("../../../Datasets/cars.xml");
-            var customersXml = File.ReadAllText("../../../Datasets/customers.xml");
-            var salesXml = File.ReadAllText("../../../Datasets/sales.xml");
+            //var supplierXml = File.ReadAllText("../../../Datasets/suppliers.xml");
+            //var partsXml = File.ReadAllText("../../../Datasets/parts.xml");
+            //var carsXml = File.ReadAllText("../../../Datasets/cars.xml");
+            //var customersXml = File.ReadAllText("../../../Datasets/customers.xml");
+            //var salesXml = File.ReadAllText("../../../Datasets/sales.xml");
 
             //09. Import Suppliers
-            ImportSuppliers(context, supplierXml);
+            //ImportSuppliers(context, supplierXml);
             //var result = ImportSuppliers(context, supplierXml);
 
             //10. Import Parts
-            ImportParts(context, partsXml);
+            //ImportParts(context, partsXml);
             //var result = ImportParts(context, partsXml);
 
             //11. Import Cars
-            ImportCars(context, carsXml);
+            //ImportCars(context, carsXml);
             //var result = ImportCars(context, carsXml);
 
             //12. Import Customers
-            ImportCustomers(context, customersXml);
+            //ImportCustomers(context, customersXml);
             //var result = ImportCustomers(context, customersXml);
 
             //13. Import Sales
-            ImportSales(context, salesXml);
-            var result = ImportCustomers(context, salesXml);
+            //ImportSales(context, salesXml);
+            //var result = ImportCustomers(context, salesXml);
+
+            //14. Export Cars With Distance
+            var result = GetCarsWithDistance(context);
 
             Console.WriteLine(result);
 
         }
 
+        public static string GetCarsWithDistance(CarDealerContext context)
+        {
+            const string root = "cars";
+
+            var cars = context.Cars
+                .Where(x => x.TravelledDistance > 2000000)
+                .Select(x=>new CarOutputModel
+                {
+                    Make = x.Make,
+                    Model = x.Model,
+                    TravelledDistance = x.TravelledDistance
+                })
+                .OrderBy(x => x.Make)
+                .ThenBy(x => x.Model)
+                .Take(10)
+                .ToArray();
+
+            var xmlSerializer = new XmlSerializer(typeof(CarOutputModel[]), new XmlRootAttribute(root));
+
+            var textWriter = new StringWriter();
+            var namespaces = new XmlSerializerNamespaces();
+            namespaces.Add("", "");
+
+            xmlSerializer.Serialize(textWriter, cars, namespaces);
+
+            var result = textWriter.ToString();
+
+            return result;
+            
+        }
         public static string ImportSales(CarDealerContext context, string inputXml)
         {
             const string root = "Sales";
