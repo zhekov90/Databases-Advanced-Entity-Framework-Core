@@ -49,10 +49,41 @@ namespace CarDealer
             //var result = ImportCustomers(context, salesXml);
 
             //14. Export Cars With Distance
-            var result = GetCarsWithDistance(context);
+            //var result = GetCarsWithDistance(context);
 
+            //15. Export Cars From Make BMW
+            var result = GetCarsFromMakeBmw(context);
             Console.WriteLine(result);
 
+        }
+
+        public static string GetCarsFromMakeBmw(CarDealerContext context)
+        {
+            const string root = "cars";
+
+            var cars = context.Cars
+                .Where(x => x.Make == "BMW")
+                .Select(x => new BmwOutputModel
+                {
+                    Id = x.Id,
+                    Model = x.Model,
+                    TravelledDistance = x.TravelledDistance
+                })
+                .OrderBy(x => x.Model)
+                .ThenByDescending(x => x.TravelledDistance)
+                .ToArray();
+
+            var xmlSerializer = new XmlSerializer(typeof(BmwOutputModel[]), new XmlRootAttribute(root));
+
+            var textWriter = new StringWriter();
+            var namespaces = new XmlSerializerNamespaces();
+            namespaces.Add("", "");
+
+            xmlSerializer.Serialize(textWriter, cars, namespaces);
+
+            var result = textWriter.ToString();
+
+            return result;
         }
 
         public static string GetCarsWithDistance(CarDealerContext context)
