@@ -58,11 +58,42 @@ namespace CarDealer
             //var result = GetLocalSuppliers(context);
 
             //17. Export Cars With Their List Of Parts
-            var result = GetCarsWithTheirListOfParts(context);
+            //var result = GetCarsWithTheirListOfParts(context);
+
+            //18.Export Total Sales By Customer
+            var result = GetTotalSalesByCustomer(context);
             Console.WriteLine(result);
 
         }
 
+        public static string GetTotalSalesByCustomer(CarDealerContext context)
+        {
+            const string root = "customers";
+
+            var customers = context.Customers
+                .Where(x => x.Sales.Any())
+                .Select(x => new CustomerOutputModel
+                {
+                    Name = x.Name,
+                    BoughtCars = x.Sales.Count(),
+                    SpentMoney = x.Sales.Select(x => x.Car).SelectMany(x => x.PartCars).Sum(x => x.Part.Price)
+                })
+                .OrderByDescending(x=>x.SpentMoney)
+                .ToArray();
+
+            XmlSerializer xmlSerializer = new XmlSerializer(typeof(CustomerOutputModel[]), new XmlRootAttribute(root));
+
+            var textWriter = new StringWriter();
+
+            var ns = new XmlSerializerNamespaces();
+            ns.Add("", "");
+
+            xmlSerializer.Serialize(textWriter, customers, ns);
+
+            var result = textWriter.ToString();
+
+            return result;
+        }
         public static string GetCarsWithTheirListOfParts(CarDealerContext context)
         {
             const string root = "cars";
