@@ -55,9 +55,48 @@ namespace CarDealer
             //var result = GetCarsFromMakeBmw(context);
 
             //16. Export Local Suppliers
-            var result = GetLocalSuppliers(context);
+            //var result = GetLocalSuppliers(context);
+
+            //17. Export Cars With Their List Of Parts
+            var result = GetCarsWithTheirListOfParts(context);
             Console.WriteLine(result);
 
+        }
+
+        public static string GetCarsWithTheirListOfParts(CarDealerContext context)
+        {
+            const string root = "cars";
+
+            var cars = context.Cars
+                .Select(x => new CarPartOutputModel
+                {
+                    Make = x.Make,
+                    Model = x.Model,
+                    TravelledDistance = x.TravelledDistance,
+                    Parts = x.PartCars.Select(p => new CarPartInfoOutputModel
+                    {
+                        Name = p.Part.Name,
+                        Price = p.Part.Price
+                    })
+                    .OrderByDescending(p => p.Price)
+                    .ToArray()
+                })
+                .OrderByDescending(x=>x.TravelledDistance)
+                .ThenBy(x=>x.Model)
+                .Take(5)
+                .ToArray();
+
+            XmlSerializer xmlSerializer = new XmlSerializer(typeof(CarPartOutputModel[]), new XmlRootAttribute(root));
+
+            var textWriter = new StringWriter();
+            var ns = new XmlSerializerNamespaces();
+            ns.Add("", "");
+
+            xmlSerializer.Serialize(textWriter, cars, ns);
+
+            var result = textWriter.ToString();
+
+            return result;
         }
 
         public static string GetLocalSuppliers(CarDealerContext context)
