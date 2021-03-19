@@ -61,11 +61,50 @@ namespace CarDealer
             //var result = GetCarsWithTheirListOfParts(context);
 
             //18.Export Total Sales By Customer
-            var result = GetTotalSalesByCustomer(context);
+            //var result = GetTotalSalesByCustomer(context);
+
+            //19. Export Sales With Applied Discount
+            var result = GetSalesWithAppliedDiscount(context);
+
             Console.WriteLine(result);
 
         }
 
+        public static string GetSalesWithAppliedDiscount(CarDealerContext context)
+        {
+            const string root = "sales";
+
+            var sales = context.Sales
+                .Select(x => new SalesOutputModel
+                {
+                    Car = new CarSaleOutput
+                    {
+                        Make = x.Car.Make,
+                        Model = x.Car.Model,
+                        TravelledDistance = x.Car.TravelledDistance
+                    },
+                    CustomerName = x.Customer.Name,
+                    Price = x.Customer.Sales.SelectMany(x => x.Car.PartCars).Sum(x => x.Part.Price),
+                    Discount = x.Discount,
+                    PriceWithDiscount = x.Car.PartCars.Sum(x => x.Part.Price) - x.Car.PartCars.Sum(x => x.Part.Price) * x.Discount / 100
+                })
+                .ToArray();
+
+
+            XmlSerializer xmlSerializer = new XmlSerializer(typeof(SalesOutputModel[]), new XmlRootAttribute(root));
+
+            var textWriter = new StringWriter();
+
+            var ns = new XmlSerializerNamespaces();
+            ns.Add("", "");
+
+            xmlSerializer.Serialize(textWriter, sales, ns);
+
+            var result = textWriter.ToString();
+
+            return result;
+
+        }
         public static string GetTotalSalesByCustomer(CarDealerContext context)
         {
             const string root = "customers";
@@ -78,7 +117,7 @@ namespace CarDealer
                     BoughtCars = x.Sales.Count(),
                     SpentMoney = x.Sales.Select(x => x.Car).SelectMany(x => x.PartCars).Sum(x => x.Part.Price)
                 })
-                .OrderByDescending(x=>x.SpentMoney)
+                .OrderByDescending(x => x.SpentMoney)
                 .ToArray();
 
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(CustomerOutputModel[]), new XmlRootAttribute(root));
@@ -112,8 +151,8 @@ namespace CarDealer
                     .OrderByDescending(p => p.Price)
                     .ToArray()
                 })
-                .OrderByDescending(x=>x.TravelledDistance)
-                .ThenBy(x=>x.Model)
+                .OrderByDescending(x => x.TravelledDistance)
+                .ThenBy(x => x.Model)
                 .Take(5)
                 .ToArray();
 
@@ -190,7 +229,7 @@ namespace CarDealer
 
             var cars = context.Cars
                 .Where(x => x.TravelledDistance > 2000000)
-                .Select(x=>new CarOutputModel
+                .Select(x => new CarOutputModel
                 {
                     Make = x.Make,
                     Model = x.Model,
@@ -212,17 +251,17 @@ namespace CarDealer
             var result = textWriter.ToString();
 
             return result;
-            
+
         }
         public static string ImportSales(CarDealerContext context, string inputXml)
         {
             const string root = "Sales";
-            var validCars = context.Cars.Select(x=>x.Id).ToList();
+            var validCars = context.Cars.Select(x => x.Id).ToList();
 
             var salesDto = XmlConverter.Deserializer<SaleInputModel>(inputXml, root);
 
             var sales = salesDto
-                .Where(x=>validCars.Contains(x.CarId))
+                .Where(x => validCars.Contains(x.CarId))
                 .Select(x => new Sale
                 {
                     CarId = x.CarId,
