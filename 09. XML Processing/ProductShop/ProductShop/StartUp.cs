@@ -23,6 +23,7 @@ namespace ProductShop
             var usersXml = File.ReadAllText("../../../Datasets/users.xml");
             var productsXml = File.ReadAllText("../../../Datasets/products.xml");
             var categoriesXml = File.ReadAllText("../../../Datasets/categories.xml");
+            var categoriesProductsXml = File.ReadAllText("../../../Datasets/categories-products.xml");
 
             //01.Import Users
             ImportUsers(context, usersXml);
@@ -31,9 +32,38 @@ namespace ProductShop
             ImportProducts(context, productsXml);
 
             //03. Import Categories
-            var result = ImportCategories(context, categoriesXml);
+            ImportCategories(context, categoriesXml);
+
+            //04. Import Categories and Products
+            var result = ImportCategoryProducts(context, categoriesProductsXml);
 
             Console.WriteLine(result);
+        }
+
+        public static string ImportCategoryProducts(ProductShopContext context, string inputXml)
+        {
+            const string root = "CategoryProducts";
+
+            var categoriesProductsDto = XmlConverter.Deserializer<CategoryProductImportModel>(inputXml, root);
+
+            var validCategories = context.Categories
+                .Select(x => x.Id);
+            var validProducts = context.Products
+                .Select(x => x.Id);
+
+            var categoriesProducts = categoriesProductsDto
+                .Where(x => validCategories.Contains(x.CategoryId) && validProducts.Contains(x.ProductId))
+                .Select(x => new CategoryProduct
+                {
+                    CategoryId = x.CategoryId,
+                    ProductId = x.ProductId
+                })
+                .ToArray();
+
+            context.CategoryProducts.AddRange(categoriesProducts);
+            context.SaveChanges();
+
+            return $"Successfully imported {categoriesProducts.Count()}";
         }
 
         public static string ImportCategories(ProductShopContext context, string inputXml)
