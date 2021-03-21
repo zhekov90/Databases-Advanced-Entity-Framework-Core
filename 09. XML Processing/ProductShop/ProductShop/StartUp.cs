@@ -39,10 +39,40 @@ namespace ProductShop
             //ImportCategoryProducts(context, categoriesProductsXml);
 
             //05. Export Products In Range
-            var result = GetProductsInRange(context);
-            File.WriteAllText("../../../results/products-in-range.xml", result);
+            //var result = GetProductsInRange(context);
+            //File.WriteAllText("../../../results/products-in-range.xml", result);
+
+            //06. Export Sold Products
+            var result = GetSoldProducts(context);
+            File.WriteAllText("../../../results/users-sold-products.xml", result);
         }
 
+        public static string GetSoldProducts(ProductShopContext context)
+        {
+            const string root = "Users";
+
+            var users = context.Users
+                .Where(x => x.ProductsSold.Any())
+                .Select(x => new UserSoldProductExport
+                {
+                    FirstName = x.FirstName,
+                    LastName = x.LastName,
+                    SoldProducts = x.ProductsSold.Select(ps => new SoldProductExport
+                    {
+                        Name = ps.Name,
+                        Price = ps.Price
+                    })
+                    .ToArray()
+                })
+                .OrderBy(x => x.LastName)
+                .ThenBy(x => x.FirstName)
+                .Take(5)
+                .ToArray();
+
+            var result = XmlConverter.Serialize(users, root);
+
+            return result;
+        }
         public static string GetProductsInRange(ProductShopContext context)
         {
             const string root = "Products";
