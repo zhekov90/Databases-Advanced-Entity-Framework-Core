@@ -8,6 +8,7 @@ using CarDealer.XmlHelper;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 using AutoMapper;
+using ProductShop.Dtos.Export;
 
 namespace ProductShop
 {
@@ -17,27 +18,50 @@ namespace ProductShop
         {
             var context = new ProductShopContext();
 
-            context.Database.EnsureDeleted();
-            context.Database.EnsureCreated();
+            //context.Database.EnsureDeleted();
+            //context.Database.EnsureCreated();
 
-            var usersXml = File.ReadAllText("../../../Datasets/users.xml");
-            var productsXml = File.ReadAllText("../../../Datasets/products.xml");
-            var categoriesXml = File.ReadAllText("../../../Datasets/categories.xml");
-            var categoriesProductsXml = File.ReadAllText("../../../Datasets/categories-products.xml");
+            //var usersXml = File.ReadAllText("../../../Datasets/users.xml");
+            //var productsXml = File.ReadAllText("../../../Datasets/products.xml");
+            //var categoriesXml = File.ReadAllText("../../../Datasets/categories.xml");
+            //var categoriesProductsXml = File.ReadAllText("../../../Datasets/categories-products.xml");
 
             //01.Import Users
-            ImportUsers(context, usersXml);
+            //ImportUsers(context, usersXml);
 
             //02. Import Products
-            ImportProducts(context, productsXml);
+            //ImportProducts(context, productsXml);
 
             //03. Import Categories
-            ImportCategories(context, categoriesXml);
+            //ImportCategories(context, categoriesXml);
 
             //04. Import Categories and Products
-            var result = ImportCategoryProducts(context, categoriesProductsXml);
+            //ImportCategoryProducts(context, categoriesProductsXml);
 
-            Console.WriteLine(result);
+            //05. Export Products In Range
+            var result = GetProductsInRange(context);
+            File.WriteAllText("../../../results/products-in-range.xml", result);
+        }
+
+        public static string GetProductsInRange(ProductShopContext context)
+        {
+            const string root = "Products";
+
+            var products = context.Products
+                .Where(x => x.Price >= 500 && x.Price <= 1000)
+                .Select(x => new ProductExport
+                {
+                    Name = x.Name,
+                    Price = x.Price,
+                    Buyer = x.Buyer.FirstName + " " + x.Buyer.LastName
+                })
+                .OrderBy(x => x.Price)
+                .Take(10)
+                .ToList();
+
+            var result = XmlConverter.Serialize(products, root);
+
+            return result;
         }
 
         public static string ImportCategoryProducts(ProductShopContext context, string inputXml)
@@ -76,7 +100,7 @@ namespace ProductShop
 
             foreach (var dto in categoriesDto)
             {
-                if (dto==null)
+                if (dto == null)
                 {
                     continue;
                 }
@@ -86,7 +110,7 @@ namespace ProductShop
                     Name = dto.Name
                 };
 
-            categories.Add(category);
+                categories.Add(category);
             }
 
             context.Categories.AddRange(categories);
