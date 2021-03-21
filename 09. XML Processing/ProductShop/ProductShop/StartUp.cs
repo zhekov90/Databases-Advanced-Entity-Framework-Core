@@ -43,8 +43,33 @@ namespace ProductShop
             //File.WriteAllText("../../../results/products-in-range.xml", result);
 
             //06. Export Sold Products
-            var result = GetSoldProducts(context);
-            File.WriteAllText("../../../results/users-sold-products.xml", result);
+            //var result = GetSoldProducts(context);
+            //File.WriteAllText("../../../results/users-sold-products.xml", result);
+
+            //07. Export Categories By Products Count
+            var result = GetCategoriesByProductsCount(context);
+            File.WriteAllText("../../../results/categories-by-products.xml", result);
+        }
+
+        public static string GetCategoriesByProductsCount(ProductShopContext context)
+        {
+            const string root = "Categories";
+
+            var categories = context.Categories
+                .Select(x => new CategoryByProductExport
+                {
+                    Name = x.Name,
+                    Count = x.CategoryProducts.Count,
+                    AveragePrice = x.CategoryProducts.Average(p => p.Product.Price),
+                    TotalRevenue = x.CategoryProducts.Sum(p => p.Product.Price)
+                })
+                .OrderByDescending(x => x.Count)
+                .ThenBy(x => x.TotalRevenue)
+                .ToArray();
+
+            var result = XmlConverter.Serialize(categories, root);
+
+            return result;
         }
 
         public static string GetSoldProducts(ProductShopContext context)
