@@ -1,200 +1,263 @@
-﻿namespace VaporStore.DataProcessor
-{
-    using Data;
-    using Data.Models;
-    using DTOs.Import;
-    using Newtonsoft.Json;
-    using System;
-    using System.Collections.Generic;
-    using System.ComponentModel.DataAnnotations;
-    using System.Globalization;
-    using System.IO;
-    using System.Linq;
-    using System.Text;
-    using System.Xml.Serialization;
-    using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Newtonsoft.Json;
+using VaporStore.Data;
+using System.Globalization;
+using VaporStore.Data.Models;
+using System.Xml.Serialization;
+using System.Collections.Generic;
+using VaporStore.DataProcessor.Dto.Import;
+using System.ComponentModel.DataAnnotations;
 
+namespace VaporStore.DataProcessor
+{
     public static class Deserializer
     {
+        private const string ERROR_MESSAGE = "Invalid Data";
+
+        private const string SUCCESSFULLY_ADDED_GAME = "Added {0} ({1}) with {2} tags";
+
+        private const string SUCCESSFULLY_ADDED_USER = "Imported {0} with {1} cards";
+
+        private const string SUCCESSFULLY_ADDED_PURCHASE = "Imported {0} for {1}";
+
         public static string ImportGames(VaporStoreDbContext context, string jsonString)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
-            GameDTO[] deserializedGameDtos = JsonConvert.DeserializeObject<GameDTO[]>(jsonString);
+            var gameDtos = JsonConvert.DeserializeObject<List<ImportGameDto>>(jsonString);
 
-            List<Developer> developers = new List<Developer>();
-            List<Genre> genres = new List<Genre>();
-            List<Tag> tags = new List<Tag>();
-            List<Game> games = new List<Game>();
+            var games = new List<Game>();
 
-            foreach (var gameDto in deserializedGameDtos)
+            var developers = new List<Developer>();
+            var genres = new List<Genre>();
+            var tags = new List<Tag>();
+
+            foreach (var game in gameDtos)
             {
-                if (!IsValid(gameDto) || !gameDto.Tags.All(IsValid))
+                if (!IsValid(game))
                 {
-                    sb.AppendLine("Invalid Data");
+                    sb.AppendLine(ERROR_MESSAGE);
+
                     continue;
                 }
 
-                Developer developer = developers.FirstOrDefault(d => d.Name == gameDto.Developer);
-                if (developer == null)
-                {
-                    developer = new Developer()
-                    {
-                        Name = gameDto.Developer
-                    };
+                DateTime releaseDate;
 
-                    developers.Add(developer);
+                var isReleaseDateValid = DateTime.TryParseExact(game.ReleaseDate, "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out releaseDate);
+
+                if (!isReleaseDateValid)
+                {
+                    sb.AppendLine(ERROR_MESSAGE);
+
+                    continue;
                 }
 
-                Genre genre = genres.FirstOrDefault(g => g.Name == gameDto.Genre);
-                if (genre == null)
+                var gameToAdd = new Game()
                 {
-                    genre = new Genre()
-                    {
-                        Name = gameDto.Genre
-                    };
-
-                    genres.Add(genre);
-                }
-
-                List<Tag> currentGameTags = new List<Tag>();
-                foreach (var tagName in gameDto.Tags)
-                {
-                    Tag tag = tags.FirstOrDefault(t => t.Name == tagName);
-                    if (tag == null)
-                    {
-                        tag = new Tag()
-                        {
-                            Name = tagName
-                        };
-
-                        tags.Add(tag);
-                    }
-
-                    currentGameTags.Add(tag);
-                }
-
-                Game game = new Game()
-                {
-                    Name = gameDto.Name,
-                    Price = gameDto.Price,
-                    Developer = developer,
-                    Genre = genre,
-                    ReleaseDate = gameDto.ReleaseDate,
-                    GameTags = currentGameTags.Select(gt => new GameTag()
-                    {
-                        Tag = gt
-                    })
-                        .ToArray()
+                    Name = game.Name,
+                    ReleaseDate = releaseDate,
+                    Price = game.Price
                 };
 
-                games.Add(game);
+                var developer = developers.FirstOrDefault(d => d.Name == game.Developer) ??
+                new Developer()
+                {
+                    Name = game.Developer
+                };
 
-                sb.AppendLine($"Added {gameDto.Name} ({gameDto.Genre}) with {gameDto.Tags.Length} tags");
+                developers.Add(developer);
+
+                gameToAdd.Developer = developer;
+
+                var genre = genres.FirstOrDefault(g => g.Name == game.Genre) ??
+                new Genre()
+                {
+                    Name = game.Genre
+                };
+
+                genres.Add(genre);
+
+                gameToAdd.Genre = genre;
+
+                foreach (var tag in game.Tags)
+                {
+                    var tagToAdd = tags.FirstOrDefault(t => t.Name == tag) ??
+                    new Tag()
+                    {
+                        Name = tag
+                    };
+
+                    tags.Add(tagToAdd);
+
+                    gameToAdd.GameTags.Add(new GameTag()
+                    {
+                        Game = gameToAdd,
+                        Tag = tagToAdd
+                    });
+                }
+
+                if (gameToAdd.GameTags.Count == 0)
+                {
+                    sb.AppendLine(ERROR_MESSAGE);
+
+                    continue;
+                }
+
+                games.Add(gameToAdd);
+
+                sb.AppendLine(string.Format(SUCCESSFULLY_ADDED_GAME, gameToAdd.Name, gameToAdd.Genre.Name,
+                    gameToAdd.GameTags.Count));
             }
 
             context.Games.AddRange(games);
 
             context.SaveChanges();
 
-            return sb.ToString().TrimEnd();
+            return sb.ToString().Trim();
         }
 
         public static string ImportUsers(VaporStoreDbContext context, string jsonString)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
-            UserDTO[] deserializedUserDtos = JsonConvert.DeserializeObject<UserDTO[]>(jsonString);
+            var userDtos = JsonConvert.DeserializeObject<List<ImportUserDto>>(jsonString);
 
-            List<User> users = new List<User>();
+            var usersToAdd = new List<User>();
 
-            foreach (var dto in deserializedUserDtos)
+            foreach (var user in userDtos)
             {
-                if (!IsValid(dto) || !dto.Cards.All(IsValid))
+                if (!IsValid(user))
                 {
-                    sb.AppendLine("Invalid Data");
+                    sb.AppendLine(ERROR_MESSAGE);
+
                     continue;
                 }
 
-                Card[] currentCards = dto
-                    .Cards
-                    .Select(c => new Card()
-                    {
-                        Number = c.Number,
-                        Cvc = c.Cvc,
-                        Type = c.Type
-                    })
-                    .ToArray();
-
-                User currentUser = new User()
+                var userToAdd = new User()
                 {
-                    FullName = dto.FullName,
-                    Age = dto.Age,
-                    Email = dto.Email,
-                    Username = dto.Username,
-                    Cards = currentCards
+                    FullName = user.FullName,
+                    Username = user.UserName,
+                    Email = user.Email,
+                    Age = user.Age
                 };
 
-                users.Add(currentUser);
+                foreach (var card in user.Cards)
+                {
+                    if (!IsValid(card))
+                    {
+                        sb.AppendLine(ERROR_MESSAGE);
 
-                sb.AppendLine($"Imported {currentUser.Username} with {currentUser.Cards.Count} cards");
+                        continue;
+                    }
+
+                    var cardToAdd = new Card()
+                    {
+                        Number = card.Number,
+                        Cvc = card.Cvc,
+                        Type = card.Type,
+                        User = userToAdd
+                    };
+
+                    userToAdd.Cards.Add(cardToAdd);
+                }
+
+                usersToAdd.Add(userToAdd);
+
+                sb.AppendLine(string.Format(SUCCESSFULLY_ADDED_USER, userToAdd.Username, userToAdd.Cards.Count));
             }
 
-            context.Users.AddRange(users);
+            context.Users.AddRange(usersToAdd);
+
             context.SaveChanges();
 
-            return sb.ToString().TrimEnd();
+            return sb.ToString().Trim();
         }
 
         public static string ImportPurchases(VaporStoreDbContext context, string xmlString)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
-            XmlSerializer serializer = new XmlSerializer(typeof(PurchaseDTO[]), new XmlRootAttribute("Purchases"));
+            var serializer = new XmlSerializer(typeof(List<ImportPurchaseDto>), new XmlRootAttribute("Purchases"));
 
-            PurchaseDTO[] deserializedPurchaseDtos = (PurchaseDTO[])serializer.Deserialize(new StringReader(xmlString));
+            var namespaces = new XmlSerializerNamespaces();
 
-            List<Purchase> purchases = new List<Purchase>();
+            namespaces.Add(string.Empty, string.Empty);
 
-            foreach (var dto in deserializedPurchaseDtos)
+            var reader = new StringReader(xmlString);
+
+            using (reader)
             {
-                if (!IsValid(dto))
+                var purchaseDtos = (List<ImportPurchaseDto>)serializer.Deserialize(reader);
+
+                var purchasesToAdd = new List<Purchase>();
+
+                foreach (var purchase in purchaseDtos)
                 {
-                    sb.AppendLine("Invalid Data");
-                    continue;
+                    if (!IsValid(purchase))
+                    {
+                        sb.AppendLine(ERROR_MESSAGE);
+
+                        continue;
+                    }
+
+                    DateTime purchaseDate;
+
+                    var isPurchaseDateValid = DateTime.TryParseExact(purchase.Date, "dd/MM/yyyy HH:mm",
+                        CultureInfo.InvariantCulture, DateTimeStyles.None, out purchaseDate);
+
+                    if (!isPurchaseDateValid)
+                    {
+                        sb.AppendLine(ERROR_MESSAGE);
+
+                        continue;
+                    }
+
+                    var game = context.Games.FirstOrDefault(g => g.Name == purchase.GameTitle);
+
+                    if (game == null)
+                    {
+                        sb.AppendLine(ERROR_MESSAGE);
+                    }
+
+                    var card = context.Cards.FirstOrDefault(c => c.Number == purchase.CardNumber);
+
+                    if (card == null)
+                    {
+                        sb.AppendLine(ERROR_MESSAGE);
+                    }
+
+                    var purchaseToAdd = new Purchase()
+                    {
+                        Game = game,
+                        Type = purchase.PurchaseType,
+                        Date = purchaseDate,
+                        ProductKey = purchase.ProductKey,
+                        Card = card
+                    };
+
+                    purchasesToAdd.Add(purchaseToAdd);
+
+                    sb.AppendLine(string.Format(SUCCESSFULLY_ADDED_PURCHASE, game.Name, purchaseToAdd.Card.User.Username));
                 }
 
-                Game game = context.Games.FirstOrDefault(g => g.Name == dto.Title);
-                Card card = context.Cards.Include(x => x.User).FirstOrDefault(c => c.Number == dto.Card);
-                DateTime date = DateTime.ParseExact(dto.Date, "dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+                context.Purchases.AddRange(purchasesToAdd);
 
-                Purchase purchase = new Purchase()
-                {
-                    Game = game,
-                    Card = card,
-                    Date = date,
-                    Type = dto.Type,
-                    ProductKey = dto.Key
-                };
+                context.SaveChanges();
 
-                purchases.Add(purchase);
-                sb.AppendLine($"Imported {purchase.Game.Name} for {purchase.Card.User.Username}");
+                return sb.ToString();
             }
-
-            context.Purchases.AddRange(purchases);
-            context.SaveChanges();
-
-            return sb.ToString().TrimEnd();
         }
 
-        private static bool IsValid(object obj)
+        private static bool IsValid(object dto)
         {
-            var validationContext = new ValidationContext(obj);
-            var validationResults = new List<ValidationResult>();
+            var validationContext = new ValidationContext(dto);
+            var validationResult = new List<ValidationResult>();
 
-            var isValid = Validator.TryValidateObject(obj, validationContext, validationResults, true);
-
-            return isValid;
+            return Validator.TryValidateObject(dto, validationContext, validationResult, true);
         }
     }
 }

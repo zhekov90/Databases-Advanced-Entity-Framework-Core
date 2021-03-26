@@ -1,101 +1,110 @@
-﻿namespace VaporStore.DataProcessor
-{
-    using Data;
-    using Newtonsoft.Json;
-    using System;
-    using System.Globalization;
-    using System.IO;
-    using System.Linq;
-    using System.Text;
-    using System.Xml;
-    using System.Xml.Serialization;
-    using Data.Models.Enums;
-    using DTOs.Export;
-    using Formatting = Newtonsoft.Json.Formatting;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Newtonsoft.Json;
+using VaporStore.Data;
+using System.Globalization;
+using System.Xml.Serialization;
+using System.Collections.Generic;
+using VaporStore.Data.Models.Enums;
+using VaporStore.DataProcessor.Dto.Export;
 
+namespace VaporStore.DataProcessor
+{
     public static class Serializer
     {
         public static string ExportGamesByGenres(VaporStoreDbContext context, string[] genreNames)
         {
-            var games = context
+            var genres = context
                 .Genres
+                .ToList()
                 .Where(g => genreNames.Contains(g.Name))
                 .Select(g => new
                 {
                     Id = g.Id,
                     Genre = g.Name,
                     Games = g.Games
-                        .Where(ga => ga.Purchases.Any())
-                        .Select(ga => new
+                        .Where(gm => gm.Purchases.Count >= 1)
+                        .Select(gm => new
                         {
-                            Id = ga.Id,
-                            Title = ga.Name,
-                            Developer = ga.Developer.Name,
-                            Tags = string.Join(", ", ga.GameTags.Select(x => x.Tag.Name)),
-                            Players = ga.Purchases.Count
+                            Id = gm.Id,
+                            Title = gm.Name,
+                            Developer = gm.Developer.Name,
+                            Tags = string.Join(", ", gm.GameTags.Select(gt => gt.Tag.Name)),
+                            Players = gm.Purchases.Count
                         })
-                        .OrderByDescending(ga => ga.Players)
-                        .ThenBy(ga => ga.Id),
-                    TotalPlayers = g.Games.Sum(ga => ga.Purchases.Count)
+                        .OrderByDescending(gm => gm.Players)
+                        .ThenBy(gm => gm.Id)
+                        .ToList(),
+                    TotalPlayers = g.Games.Sum(gm => gm.Purchases.Count)
                 })
                 .OrderByDescending(g => g.TotalPlayers)
                 .ThenBy(g => g.Id)
-                .ToArray();
+                .ToList();
 
-            string result = JsonConvert.SerializeObject(games, Formatting.Indented);
+            var json = JsonConvert.SerializeObject(genres, Formatting.Indented);
 
-            return result;
+            return json;
         }
 
         public static string ExportUserPurchasesByType(VaporStoreDbContext context, string storeType)
         {
-            var currentStoreType = Enum.Parse<PurchaseType>(storeType);
+            var sb = new StringBuilder();
 
-            UserDTO[] users = context
+            var users = context
                 .Users
-                .Select(u => new UserDTO
+                .ToList()
+                .Where(u => u.Cards.Any(c => c.Purchases.Any()))
+                .Select(u => new ExportUserPurchaseDto()
                 {
                     Username = u.Username,
-                    Purchases = u.Cards
-                        .SelectMany(c => c.Purchases)
-                        .Where(p => p.Type == currentStoreType)
-                        .Select(p => new PurchaseDTO
+                    Purchases = context
+                        .Purchases
+                        .ToList()
+                        .Where(p => p.Card.User.Username == u.Username &&
+                                    p.Type == Enum.Parse<PurchaseType>(storeType))
+                        .Select(p => new ExportPurchaseDto()
                         {
-                            Card = p.Card.Number,
-                            Cvc = p.Card.Cvc,
-                            Date = p.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
-                            Game = new GameDTO()
+                            Game = new ExportPurchaseGameDto()
                             {
-                                Title = p.Game.Name,
                                 Genre = p.Game.Genre.Name,
-                                Price = p.Game.Price
-                            }
+                                Price = p.Game.Price,
+                                Title = p.Game.Name
+                            },
+                            Card = p.Card.Number,
+                            Date = p.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                            Cvc = p.Card.Cvc,
                         })
                         .OrderBy(p => p.Date)
-                        .ToArray(),
-                    TotalSpent = u.Cards
-                        .SelectMany(c => c.Purchases)
-                        .Where(p => p.Type == currentStoreType)
+                        .ToList(),
+                    TotalSpent = context
+                        .Purchases
+                        .ToList()
+                        .Where(p => p.Card.User.Username == u.Username &&
+                                    p.Type == Enum.Parse<PurchaseType>(storeType))
                         .Sum(p => p.Game.Price)
                 })
-                .Where(u => u.Purchases.Any())
+                .ToList()
+                .Where(u => u.Purchases.Count >= 1)
                 .OrderByDescending(u => u.TotalSpent)
                 .ThenBy(u => u.Username)
-                .ToArray();
+                .ToList();
 
-            XmlSerializer serializer = new XmlSerializer(typeof(UserDTO[]), new XmlRootAttribute("Users"));
+            var serializer = new XmlSerializer(typeof(List<ExportUserPurchaseDto>), new XmlRootAttribute("Users"));
 
-            StringBuilder sb = new StringBuilder();
+            var namespaces = new XmlSerializerNamespaces();
 
-            XmlSerializerNamespaces namespaces = new XmlSerializerNamespaces(new[]
+            namespaces.Add(string.Empty, string.Empty);
+
+            var writer = new StringWriter(sb);
+
+            using (writer)
             {
-                  XmlQualifiedName.Empty
-            });
+                serializer.Serialize(writer, users, namespaces);
+            }
 
-
-            serializer.Serialize(new StringWriter(sb), users, namespaces);
-
-            return sb.ToString().TrimEnd();
+            return sb.ToString().Trim();
         }
     }
 }
