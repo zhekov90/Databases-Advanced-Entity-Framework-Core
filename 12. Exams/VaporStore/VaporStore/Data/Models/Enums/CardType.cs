@@ -1,9 +1,8 @@
-﻿namespace VaporStore.Data.Models
+﻿namespace VaporStore.Data.Models.Enums
 {
     public enum CardType
     {
-        Debit,
-        Credit
-
+        Debit = 1,
+        Credit = 2,
     }
 }

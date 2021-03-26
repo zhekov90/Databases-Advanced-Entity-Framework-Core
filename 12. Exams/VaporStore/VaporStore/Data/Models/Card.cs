@@ -1,23 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using VaporStore.Data.Models.Enums;
-
-namespace VaporStore.Data.Models
+﻿namespace VaporStore.Data.Models
 {
-   public class Card
+    using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
+    using Enums;
+
+    public class Card
     {
         public Card()
         {
-            this.Purchases = new HashSet<Purchase>();
+            this.Purchases = new List<Purchase>();
         }
+
+        [Key]
         public int Id { get; set; }
 
         [Required]
+        [RegularExpression("^([0-9]{4}\\s+[0-9]{4}\\s+[0-9]{4}\\s+[0-9]{4})$")]
         public string Number { get; set; }
 
         [Required]
-        [RegularExpression(@"^[0-9]{3}$")]
+        [RegularExpression("^([0-9]{3})$")]
         public string Cvc { get; set; }
 
         [Required]
@@ -25,11 +27,8 @@ namespace VaporStore.Data.Models
 
         [Required]
         public int UserId { get; set; }
-
-        [Required]
         public User User { get; set; }
 
         public ICollection<Purchase> Purchases { get; set; }
-
     }
 }

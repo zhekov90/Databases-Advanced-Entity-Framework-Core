@@ -10,13 +10,17 @@ namespace VaporStore.DataProcessor.Dto.Import
    public class ImportGameDto
     {
         [Required]
+        [JsonProperty("Name")]
+        public string Name { get; set; }
+
+        [Required]
         [Range(typeof(decimal), "0", "79228162514264337593543950335")]
         [JsonProperty("Price")]
         public decimal Price { get; set; }
 
         [Required]
         [JsonProperty("ReleaseDate")]
-        public string ReleaseDate { get; set; }
+        public DateTime ReleaseDate { get; set; }
 
         [Required]
         [JsonProperty("Developer")]
@@ -26,7 +30,7 @@ namespace VaporStore.DataProcessor.Dto.Import
         public string Genre { get; set; }
 
         [JsonProperty("Tags")]
-        public ImportTagDto[] Tags { get; set; }
+        public string[] Tags { get; set; }
 
     }
 }

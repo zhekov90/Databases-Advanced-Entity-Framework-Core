@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Text;
-
-namespace VaporStore.Data.Models
+﻿namespace VaporStore.Data.Models
 {
+    using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
+
     public class Developer
     {
         public Developer()
@@ -12,6 +10,7 @@ namespace VaporStore.Data.Models
             this.Games = new HashSet<Game>();
         }
 
+        [Key]
         public int Id { get; set; }
 
         [Required]

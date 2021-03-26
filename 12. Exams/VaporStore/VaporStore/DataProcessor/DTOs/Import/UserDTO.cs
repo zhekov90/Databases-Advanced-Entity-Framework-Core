@@ -1,18 +1,10 @@
-﻿namespace VaporStore.Data.Models
+﻿namespace VaporStore.DataProcessor.DTOs.Import
 {
-    using System.Collections.Generic;
+    using Data.Models;
     using System.ComponentModel.DataAnnotations;
 
-    public class User
+    public class UserDTO
     {
-        public User()
-        {
-            this.Cards = new List<Card>();
-        }
-
-        [Key]
-        public int Id { get; set; }
-
         [Required]
         [StringLength(maximumLength: 20, MinimumLength = 3)]
         public string Username { get; set; }
@@ -28,6 +20,6 @@
         [Range(3, 103)]
         public int Age { get; set; }
 
-        public ICollection<Card> Cards { get; set; }
+        public Card[] Cards { get; set; }
     }
 }
