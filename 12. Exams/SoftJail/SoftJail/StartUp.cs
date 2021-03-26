@@ -1,11 +1,11 @@
-﻿namespace SoftJail
-{
-    using System;
-    using Data;
-    using AutoMapper;
-    using Microsoft.EntityFrameworkCore;
-    using System.IO;
+﻿using System;
+using System.IO;
+using AutoMapper;
+using SoftJail.Data;
+using Microsoft.EntityFrameworkCore;
 
+namespace SoftJail
+{
     public class StartUp
     {
         public static void Main(string[] args)
@@ -19,6 +19,7 @@
             var projectDir = GetProjectDirectory();
 
             ImportEntities(context, projectDir + @"Datasets/", projectDir + @"ImportResults/");
+
             ExportEntities(context, projectDir + @"ExportResults/");
 
             using (var transaction = context.Database.BeginTransaction())
