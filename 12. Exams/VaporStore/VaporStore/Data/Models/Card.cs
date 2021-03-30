@@ -1,13 +1,18 @@
-﻿using System.Collections.Generic;
-using VaporStore.Data.Models.Enums;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.Text;
+using VaporStore.Data.Models.Enums;
 
 namespace VaporStore.Data.Models
 {
-    public class Card
+   public class Card
     {
-        [Key]
+
+        public Card()
+        {
+            this.Purchases = new HashSet<Purchase>();
+        }
         public int Id { get; set; }
 
         [Required]
@@ -20,12 +25,17 @@ namespace VaporStore.Data.Models
         public CardType Type { get; set; }
 
         [Required]
-        [ForeignKey(nameof(User))]
         public int UserId { get; set; }
 
+        [Required]
         public User User { get; set; }
-
         public ICollection<Purchase> Purchases { get; set; }
-            = new HashSet<Purchase>();
     }
 }
+//•	Id – integer, Primary Key
+//•	Number – text, which consists of 4 pairs of 4 digits, separated by spaces (ex. “1234 5678 9012 3456”) (required)
+//•	Cvc – text, which consists of 3 digits (ex. “123”) (required)
+//•	Type – enumeration of type CardType, with possible values (“Debit”, “Credit”) (required)
+//•	UserId – integer, foreign key(required)
+//•	User – the card’s user (required)
+//•	Purchases – collection of type Purchase
