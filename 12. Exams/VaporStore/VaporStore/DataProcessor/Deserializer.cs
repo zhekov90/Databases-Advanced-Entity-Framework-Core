@@ -3,8 +3,11 @@
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.Globalization;
+    using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Xml.Serialization;
     using Data;
     using Newtonsoft.Json;
     using VaporStore.Data.Models;
@@ -31,13 +34,13 @@
 
                 var developer = context.Developers.FirstOrDefault(x => x.Name == jsonGame.Developer) ?? new Developer { Name = jsonGame.Developer };
 
-                
+
                 var game = new Game
                 {
                     Name = jsonGame.Name,
                     Price = jsonGame.Price,
                     ReleaseDate = jsonGame.ReleaseDate.Value,
-                    Developer = developer, 
+                    Developer = developer,
                     Genre = genre,
                 };
 
@@ -55,7 +58,7 @@
                 sb.AppendLine($"Added {jsonGame.Name} ({jsonGame.Genre}) with {jsonGame.Tags.Count()} tags");
             }
 
-           
+
 
             return sb.ToString().TrimEnd();
         }
@@ -68,11 +71,12 @@
 
             foreach (var jsonUser in users)
             {
-                if (!IsValid(jsonUser))
+                if (!IsValid(jsonUser) || !jsonUser.Cards.All(IsValid))
                 {
                     sb.AppendLine("Invalid Data");
                     continue;
                 }
+
 
                 var user = new User
                 {
@@ -100,7 +104,50 @@
 
         public static string ImportPurchases(VaporStoreDbContext context, string xmlString)
         {
-            return "TODO";
+            var sb = new StringBuilder();
+
+            XmlSerializer serializer = new XmlSerializer(typeof(PurchaseXmlImportModel[]), new XmlRootAttribute("Purchases"));
+
+            var purchases = (PurchaseXmlImportModel[])serializer.Deserialize(new StringReader(xmlString));
+
+            foreach (var xmlPurchase in purchases)
+            {
+                if (!IsValid(xmlPurchase))
+                {
+                    sb.AppendLine("Invalid Data");
+                    continue;
+                }
+
+                bool parsedDate = DateTime.TryParseExact(xmlPurchase.Date, "dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date);
+
+                if (!parsedDate)
+                {
+                    sb.AppendLine("Invalid Data");
+                    continue;
+                }
+
+                var purchase = new Purchase
+                {
+                    
+                    Type = xmlPurchase.Type.Value,
+                    ProductKey = xmlPurchase.Key,
+                    Date = date,
+                };
+
+                purchase.Card = context.Cards.FirstOrDefault(x => x.Number == xmlPurchase.Card);
+
+                purchase.Game = context.Games.FirstOrDefault(x => x.Name == xmlPurchase.Title);
+
+                var username = context.Users.
+                    Where(x => x.Id == purchase.Card.UserId).Select(x => x.Username).FirstOrDefault();
+
+                context.Purchases.Add(purchase);
+                sb.AppendLine($"Imported {xmlPurchase.Title} for {username}");
+            }
+
+            context.SaveChanges();
+
+            return sb.ToString().TrimEnd();
         }
 
         private static bool IsValid(object dto)
@@ -112,3 +159,4 @@
         }
     }
 }
+
