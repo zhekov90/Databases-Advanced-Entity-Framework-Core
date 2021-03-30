@@ -132,11 +132,10 @@
                     Type = xmlPurchase.Type.Value,
                     ProductKey = xmlPurchase.Key,
                     Date = date,
+                    Card = context.Cards.FirstOrDefault(x => x.Number == xmlPurchase.Card),
+                    Game = context.Games.FirstOrDefault(x => x.Name == xmlPurchase.Title)
+
                 };
-
-                purchase.Card = context.Cards.FirstOrDefault(x => x.Number == xmlPurchase.Card);
-
-                purchase.Game = context.Games.FirstOrDefault(x => x.Name == xmlPurchase.Title);
 
                 var username = context.Users.
                     Where(x => x.Id == purchase.Card.UserId).Select(x => x.Username).FirstOrDefault();
