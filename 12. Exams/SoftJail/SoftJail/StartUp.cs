@@ -1,11 +1,13 @@
-﻿using System;
-using System.IO;
-using AutoMapper;
-using SoftJail.Data;
-using Microsoft.EntityFrameworkCore;
-
-namespace SoftJail
+﻿namespace SoftJail
 {
+    using System;
+    using Data;
+    using AutoMapper;
+    using Microsoft.EntityFrameworkCore;
+    using System.IO;
+    using System.Linq;
+    using SoftJail.Data.Models;
+
     public class StartUp
     {
         public static void Main(string[] args)
@@ -14,12 +16,19 @@ namespace SoftJail
 
             Mapper.Initialize(config => config.AddProfile<SoftJailProfile>());
 
-            ResetDatabase(context, shouldDropDatabase: false);
+            ResetDatabase(context, shouldDropDatabase: true);
+
+            var department = new Department
+            {
+                Name = "67890-98765789"
+            };
+
+            context.Departments.Add(department);
+            context.SaveChanges();
 
             var projectDir = GetProjectDirectory();
 
             ImportEntities(context, projectDir + @"Datasets/", projectDir + @"ImportResults/");
-
             ExportEntities(context, projectDir + @"ExportResults/");
 
             using (var transaction = context.Database.BeginTransaction())

@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Xml.Serialization;
 
 namespace SoftJail.DataProcessor.ExportDto
 {
     [XmlType("Prisoner")]
-    public class ExportPrisonerDto
+    public class PrisonerViewModel
     {
         [XmlElement("Id")]
         public int Id { get; set; }
@@ -14,8 +16,8 @@ namespace SoftJail.DataProcessor.ExportDto
 
         [XmlElement("IncarcerationDate")]
         public string IncarcerationDate { get; set; }
-
+       
         [XmlArray("EncryptedMessages")]
-        public ExportPrisonerMessageDto[] EncryptedMessages { get; set; }
+        public EncryptedMessageViewModel[] EncryptedMessages { get; set; }
     }
 }

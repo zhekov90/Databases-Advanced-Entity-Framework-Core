@@ -1,102 +1,59 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Xml.Serialization;
-using Newtonsoft.Json;
-using SoftJail.Data;
-using SoftJail.DataProcessor.ExportDto;
-
-namespace SoftJail.DataProcessor
+﻿namespace SoftJail.DataProcessor
 {
+    using AutoMapper.QueryableExtensions;
+    using Data;
+    using Newtonsoft.Json;
+    using SoftJail.DataProcessor.ExportDto;
+    using System;
+    using System.Linq;
+    using Microsoft.EntityFrameworkCore;
+
     public class Serializer
     {
         public static string ExportPrisonersByCells(SoftJailDbContext context, int[] ids)
         {
-            var prisoners = context
-                .Prisoners
-                .ToList()
-                .Where(p => ids.Contains(p.Id))
-                .Select(p => new
+            var result = context.Prisoners
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
                 {
-                    Id = p.Id,
-                    Name = p.FullName,
-                    CellNumber = p.Cell.CellNumber,
-                    Officers = p.PrisonerOfficers.Select(po => new
+                    Id = x.Id,
+                    Name = x.FullName,
+                    CelLNumber = x.Cell.CellNumber,
+                    Officers = x.PrisonerOfficers.Select(o => new
                     {
-                        OfficerName = po.Officer.FullName,
-                        Department = po.Officer.Department.Name
+                        OfficerName = o.Officer.FullName,
+                        Department = o.Officer.Department.Name
                     })
-                        .ToList()
-                        .OrderBy(o => o.OfficerName)
-                        .ToList(),
-                    TotalOfficerSalary = p.PrisonerOfficers.Sum(po => po.Officer.Salary)
+                    .OrderBy(x => x.OfficerName)
+                    .ToList(),
+                    TotalOfficerSalary = x.PrisonerOfficers
+                        .Sum(x => x.Officer.Salary)
+                        .ToString("F2")
                 })
-                .ToList()
-                .OrderBy(p => p.Name)
-                .ThenBy(p => p.Id)
+                .OrderBy(x => x.TotalOfficerSalary)
+                .ThenBy(x => x.Id)
                 .ToList();
 
-            var json = JsonConvert.SerializeObject(prisoners, Formatting.Indented);
+            string json = JsonConvert.SerializeObject(result, Formatting.Indented);
 
             return json;
         }
 
         public static string ExportPrisonersInbox(SoftJailDbContext context, string prisonersNames)
         {
-            var sb = new StringBuilder();
+            var names = prisonersNames.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-            var prisonersList = prisonersNames
-                .Split(',')
+            var result = context.Prisoners
+                .Include(x => x.Mails)
+                .Where(x => names.Contains(x.FullName))
+                .ProjectTo<PrisonerViewModel>()
+                .OrderBy(x => x.Name)
+                .ThenBy(x => x.Id)
                 .ToList();
 
-            var prisoners = context
-                .Prisoners
-                .ToList()
-                .Where(p => prisonersList.Contains(p.FullName))
-                .Select(p => new ExportPrisonerDto()
-                {
-                    Name = p.FullName,
-                    IncarcerationDate = p.IncarcerationDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    Id = p.Id,
-                    EncryptedMessages = p.Mails
-                        .ToArray()
-                        .Select(m => new ExportPrisonerMessageDto()
-                        {
-                            Description = ReverseString(m.Description)
-                        })
-                        .ToArray()
-                })
-                .ToList()
-                .OrderBy(p => p.Name)
-                .ThenBy(p => p.Id)
-                .ToList();
+            var xml = XmlConverter.Serialize(result, "Prisoners");
 
-            var serializer = new XmlSerializer(typeof(List<ExportPrisonerDto>), new XmlRootAttribute("Prisoners"));
-
-            var namespaces = new XmlSerializerNamespaces();
-
-            namespaces.Add(string.Empty, string.Empty);
-
-            var writer = new StringWriter(sb);
-
-            using (writer)
-            {
-                serializer.Serialize(writer, prisoners, namespaces);
-            }
-
-            return sb.ToString().Trim();
-        }
-
-        private static string ReverseString(string s)
-        {
-            var charArray = s.ToCharArray();
-
-            Array.Reverse(charArray);
-
-            return new string(charArray);
+            return xml;
         }
     }
 }

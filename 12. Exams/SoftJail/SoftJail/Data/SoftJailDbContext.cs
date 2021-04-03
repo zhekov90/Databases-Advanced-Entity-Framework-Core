@@ -1,19 +1,18 @@
-﻿using SoftJail.Data.Models;
-using Microsoft.EntityFrameworkCore;
-
-namespace SoftJail.Data
+﻿namespace SoftJail.Data
 {
+	using Microsoft.EntityFrameworkCore;
+    using SoftJail.Data.Models;
 
     public class SoftJailDbContext : DbContext
-    {
-        public SoftJailDbContext()
-        {
-        }
+	{
+		public SoftJailDbContext()
+		{
+		}
 
-        public SoftJailDbContext(DbContextOptions options)
-            : base(options)
-        {
-        }
+		public SoftJailDbContext(DbContextOptions options)
+			: base(options)
+		{
+		}
 
         public DbSet<Cell> Cells { get; set; }
 
@@ -27,27 +26,19 @@ namespace SoftJail.Data
 
         public DbSet<Prisoner> Prisoners { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            if (!optionsBuilder.IsConfigured)
-            {
-                optionsBuilder
-                    .UseSqlServer(Configuration.ConnectionString);
-            }
-        }
+		protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+		{
+			if (!optionsBuilder.IsConfigured)
+			{
+				optionsBuilder
+					.UseSqlServer(Configuration.ConnectionString);
+			}
+		}
 
-        protected override void OnModelCreating(ModelBuilder builder)
-        {
-            builder
-                .Entity<OfficerPrisoner>(officerPrisoner =>
-                {
-                    officerPrisoner
-                        .HasKey(op => new
-                        {
-                            op.OfficerId,
-                            op.PrisonerId
-                        });
-                });
-        }
-    }
+		protected override void OnModelCreating(ModelBuilder builder)
+		{
+			builder.Entity<OfficerPrisoner>()
+				.HasKey(x => new { x.PrisonerId, x.OfficerId });
+		}
+	}
 }
