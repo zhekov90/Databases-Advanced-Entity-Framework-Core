@@ -1,5 +1,5 @@
 # Entity Framework Core February 2021
-This repository contains tasks resolved with C# and Entity Framework Core. The C# DB Module (January 2021 - April 2021) is part of the Software Engineer program at Software University, Bulgaria.
+This repository contains tasks resolved with C# and EF Core. The C# DB Module (January 2021 - April 2021) is part of the Software Engineer program at Software University, Bulgaria.
 
 # Topics:
 ADO.NET<br/>
